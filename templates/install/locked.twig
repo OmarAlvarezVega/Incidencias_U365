@@ -1,0 +1,17 @@
+{% extends 'install/_layout.twig' %}
+{% block content %}
+<div class="card"><div class="card-body">
+{% if reason == 'installed' %}
+    <h2 class="h5">Instalador bloqueado</h2>
+    <p class="mb-0">La aplicación ya está instalada. Por seguridad el instalador no vuelve a funcionar.</p>
+{% else %}
+    <h2 class="h5">Instalación no habilitada</h2>
+    <p>Para evitar que un desconocido instale la aplicación en tu lugar, el instalador solo se abre si existe el fichero <code>storage/install.token</code>.</p>
+    <ol class="mb-0">
+        <li>Crea en tu ordenador un fichero de texto llamado <code>install.token</code> con una cadena aleatoria de al menos 32 caracteres (por ejemplo, generada con tu gestor de contraseñas).</li>
+        <li>Súbelo por SFTP a la carpeta <code>storage/</code> de la aplicación.</li>
+        <li>Recarga esta página y pega esa misma cadena en el formulario.</li>
+    </ol>
+{% endif %}
+</div></div>
+{% endblock %}

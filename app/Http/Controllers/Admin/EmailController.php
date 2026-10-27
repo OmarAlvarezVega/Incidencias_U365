@@ -98,6 +98,7 @@ final class EmailController extends Controller
         $smtpSecret = is_string($this->request->post['smtp_secret'] ?? null) ? (string)$this->request->post['smtp_secret'] : '';
         $row = $d;
         unset($row['is_default']);
+        $row['smtp_username'] = $d['smtp_username'] ?? $d['imap_username'];
         $row['active'] = $d['active'] ? 1 : 0;
         $row['updated_at'] = Clock::nowDb();
         if ($secret !== '') {

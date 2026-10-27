@@ -151,6 +151,7 @@ final class ClientService
         }
         $first = true;
         foreach ($norm as $n => $raw) {
+            $n = (string)$n; // los teléfonos son claves numéricas y PHP las convierte a int
             if (isset($keep[$n])) {
                 $db->run('UPDATE contact_identities SET is_primary = ?, value = ?, updated_at = ? WHERE id = ?', [$first ? 1 : 0, $raw, Clock::nowDb(), $keep[$n]]);
             } else {

@@ -103,20 +103,18 @@ final class Database
 
     /**
      * @param array<string,mixed> $data
-     * @param array<string,mixed> $whereParams parámetros con nombre usados en $where
+     * @param list<mixed> $whereParams parámetros posicionales (?) usados en $where
      */
     public function update(string $table, array $data, string $where, array $whereParams = []): int
     {
         self::assertIdentifier($table);
         $sets = [];
-        $params = [];
-        foreach ($data as $col => $value) {
+        foreach (array_keys($data) as $col) {
             self::assertIdentifier($col);
-            $sets[] = "`$col` = :set_$col";
-            $params["set_$col"] = $value;
+            $sets[] = "`$col` = ?";
         }
         $sql = sprintf('UPDATE `%s` SET %s WHERE %s', $table, implode(', ', $sets), $where);
-        return $this->run($sql, $params + $whereParams)->rowCount();
+        return $this->run($sql, array_merge(array_values($data), array_values($whereParams)))->rowCount();
     }
 
     /**

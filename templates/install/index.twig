@@ -1,0 +1,66 @@
+{% extends 'install/_layout.twig' %}
+{% macro field(name, label, old, errors, opts) %}
+<div class="{{ opts.col ?? 'col-md-6' }}">
+    <label class="form-label" for="{{ name }}">{{ label }}</label>
+    <input class="form-control {{ errors[name] is defined ? 'is-invalid' }}" id="{{ name }}" name="{{ name }}" type="{{ opts.type ?? 'text' }}" value="{{ opts.type is defined and opts.type == 'password' ? '' : (old[name] ?? '') }}" {{ (opts.required ?? true) ? 'required' }} autocomplete="{{ opts.auto ?? 'off' }}">
+    {% if errors[name] is defined %}<div class="invalid-feedback">{{ errors[name] }}</div>{% endif %}
+    {% if opts.help is defined %}<div class="form-text">{{ opts.help }}</div>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+{% import _self as f %}
+{% if done %}
+<div class="alert alert-success"><strong>Instalación completada.</strong> El instalador ha quedado bloqueado y se ha borrado <code>storage/install.token</code>.</div>
+<div class="card mb-3"><div class="card-body small"><ul class="mb-0">{% for l in log %}<li>{{ l }}</li>{% endfor %}</ul></div></div>
+<div class="card mb-3"><div class="card-body">
+    <h2 class="h6">Siguientes pasos</h2>
+    <ol class="small mb-3">
+        <li>Descarga por SFTP una copia de <code>config/app.key</code> y guárdala en un gestor de contraseñas. Sin ella no se pueden recuperar las credenciales cifradas de una copia de seguridad.</li>
+        <li>Configura la tarea programada (Administración › Procesos).</li>
+        <li>Configura el buzón de correo y, si procede, WhatsApp.</li>
+        <li>Revisa y activa la política de SLA y carga los festivos.</li>
+        <li>Borra <code>tools/diagnostico.php</code> del servidor si lo subiste.</li>
+    </ol>
+    <a class="btn btn-primary" href="/login">Ir al acceso</a>
+</div></div>
+{% else %}
+{% if not https %}<div class="alert alert-warning small">Estás instalando sin HTTPS. En IONOS activa el certificado SSL del subdominio antes de continuar: la contraseña viajaría sin cifrar.</div>{% endif %}
+{% if message %}<div class="alert alert-danger">{{ message }}</div>{% endif %}
+{% if log %}<div class="card mb-3"><div class="card-body small text-muted"><ul class="mb-0">{% for l in log %}<li>{{ l }}</li>{% endfor %}</ul></div></div>{% endif %}
+
+<div class="card mb-3"><div class="card-header">1. Comprobación del servidor</div>
+<ul class="list-group list-group-flush small">
+{% for c in checks %}
+    <li class="list-group-item d-flex justify-content-between"><span>{{ c.ok ? '✔' : (c.blocking ? '✖' : '⚠') }} {{ c.label }}</span><span class="text-muted">{{ c.detail }}</span></li>
+{% endfor %}
+</ul></div>
+
+{% if can_install %}
+<form method="post" action="/instalar" autocomplete="off">
+<input type="hidden" name="_nonce" value="{{ nonce }}">
+<div class="card mb-3"><div class="card-header">2. Código de instalación</div><div class="card-body"><div class="row g-3">
+    {{ f.field('install_token', 'Contenido de storage/install.token', old, errors, {type: 'password', col: 'col-12'}) }}
+</div></div></div>
+<div class="card mb-3"><div class="card-header">3. Dirección y base de datos</div><div class="card-body"><div class="row g-3">
+    {{ f.field('app_url', 'URL pública', old, errors, {col: 'col-12', help: 'Por ejemplo https://incidencias.univers365.com, sin barra final.'}) }}
+    {{ f.field('db_host', 'Servidor de base de datos', old, errors, {col: 'col-md-8', help: 'En IONOS: panel › Bases de datos › «Nombre del host» (dbXXXX.hosting-data.io).'}) }}
+    {{ f.field('db_port', 'Puerto', old, errors, {col: 'col-md-4', type: 'number'}) }}
+    {{ f.field('db_name', 'Nombre de la base de datos', old, errors, {col: 'col-md-4'}) }}
+    {{ f.field('db_user', 'Usuario', old, errors, {col: 'col-md-4'}) }}
+    {{ f.field('db_pass', 'Contraseña', old, errors, {col: 'col-md-4', type: 'password', auto: 'new-password'}) }}
+    <div class="col-12 form-text">La base de datos debe estar vacía. El instalador no borra ni modifica bases de datos con tablas.</div>
+</div></div></div>
+<div class="card mb-3"><div class="card-header">4. Superadministrador</div><div class="card-body"><div class="row g-3">
+    {{ f.field('first_name', 'Nombre', old, errors) }}
+    {{ f.field('last_name', 'Apellidos', old, errors) }}
+    {{ f.field('email', 'Correo', old, errors, {col: 'col-12', type: 'email'}) }}
+    {{ f.field('password', 'Contraseña', old, errors, {type: 'password', auto: 'new-password', help: 'Mínimo 12 caracteres combinando al menos tres de: minúsculas, mayúsculas, números y símbolos.'}) }}
+    {{ f.field('password_confirmation', 'Repite la contraseña', old, errors, {type: 'password', auto: 'new-password'}) }}
+</div></div></div>
+<button class="btn btn-primary">Instalar</button>
+</form>
+{% else %}
+<div class="alert alert-danger">Corrige los requisitos marcados con ✖ antes de instalar.</div>
+{% endif %}
+{% endif %}
+{% endblock %}

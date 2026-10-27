@@ -126,7 +126,7 @@ final class EmployeeController extends Controller
               WHERE t.deleted_at IS NULL AND s.phase IN ('new','open','pending')
                 AND (t.owner_user_id = ? OR EXISTS (SELECT 1 FROM ticket_participants p WHERE p.ticket_id = t.id AND p.user_id = ? AND p.role = 'collaborator' AND p.removed_at IS NULL))
            ORDER BY pr.level DESC, t.last_activity_at DESC LIMIT 100",
-            [$uid, $uid, $uid, $uid]
+            [$uid, $uid, $uid]
         );
         $from = Clock::now()->modify('-30 days')->format(Clock::DB_FORMAT);
         $stats = $db->one(

@@ -1,2 +1,2 @@
-# Esta carpeta nunca debe ser accesible desde la web.
+# Nada de esta carpeta se sirve por web
 Require all denied

@@ -83,19 +83,22 @@ final class ClientController extends Controller
     public function store(): Response
     {
         $d = $this->validate(self::RULES, self::LABELS);
-        $id = $this->svc()->createClient($d, $this->user()->id);
-        // Primer contacto opcional en el mismo formulario
         $first = trim($this->request->str('contact_first_name'));
-        if ($first !== '') {
-            $this->svc()->saveContact($id, [
-                'first_name' => mb_substr($first, 0, 80),
-                'last_name' => mb_substr($this->request->str('contact_last_name'), 0, 120) ?: null,
-                'job_title' => mb_substr($this->request->str('contact_job_title'), 0, 100) ?: null,
-                'is_primary' => true,
-                'emails' => array_filter([$this->request->str('contact_email')]),
-                'phones' => array_filter([$this->request->str('contact_phone')]),
-            ], $this->user()->id);
-        }
+        // Cliente y primer contacto van juntos: si el contacto falla no queda el cliente a medias
+        $id = $this->db()->transaction(function () use ($d, $first) {
+            $id = $this->svc()->createClient($d, $this->user()->id);
+            if ($first !== '') {
+                $this->svc()->saveContact($id, [
+                    'first_name' => mb_substr($first, 0, 80),
+                    'last_name' => mb_substr($this->request->str('contact_last_name'), 0, 120) ?: null,
+                    'job_title' => mb_substr($this->request->str('contact_job_title'), 0, 100) ?: null,
+                    'is_primary' => true,
+                    'emails' => array_filter([$this->request->str('contact_email')]),
+                    'phones' => array_filter([$this->request->str('contact_phone')]),
+                ], $this->user()->id);
+            }
+            return $id;
+        });
         return $this->redirect("/clientes/$id", 'Cliente creado.');
     }
 
@@ -152,6 +155,8 @@ final class ClientController extends Controller
             throw new ValidationException([], "El cliente tiene $open incidencias abiertas. Ciérralas o márcalo como inactivo.");
         }
         $this->db()->run("UPDATE clients SET deleted_at = ?, status = 'inactive' WHERE id = ?", [Clock::nowDb(), (int)$c['id']]);
+        // Sus dominios dejan de asociar correo entrante y quedan libres para otro cliente
+        $this->db()->run('DELETE FROM client_email_domains WHERE client_id = ?', [(int)$c['id']]);
         $this->audit()->log('client.deleted', 'client', (int)$c['id'], ['nombre' => $c['legal_name']]);
         return $this->redirect('/clientes', 'Cliente eliminado. Su historial de incidencias se conserva.');
     }

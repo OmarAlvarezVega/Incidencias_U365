@@ -255,8 +255,12 @@ final class WhatsAppService
                         $list[] = ($i + 1) . ') ' . $o['ticket_number'] . ' · ' . mb_substr((string)$o['subject'], 0, 60);
                     }
                     $msg = $this->app->make(Templates::class)->render('whatsapp', 'choose_ticket', ['tickets.list' => implode("\n", $list)]);
-                    $this->sendSystem($number, (int)$conv['id'], $from, $msg['body']);
-                    return; // el mensaje queda pendiente hasta que elija
+                    if ($this->sendSystem($number, (int)$conv['id'], $from, $msg['body'])) {
+                        return; // el mensaje queda pendiente hasta que elija
+                    }
+                    // Si no se ha podido preguntar, el mensaje no puede quedarse sin incidencia:
+                    // va a la más reciente y el equipo lo verá
+                    $this->app->logger()->warning('No se pudo enviar la lista de incidencias por WhatsApp; el mensaje se añade a la más reciente.');
                 }
                 $targetId = (int)$open[0]['id'];
             }
@@ -343,7 +347,7 @@ final class WhatsAppService
     }
 
     /** Mensaje automático del sistema (dentro de la ventana, porque responde a uno entrante). */
-    private function sendSystem(array $number, int $convId, string $to, string $body, ?int $ticketId = null): void
+    private function sendSystem(array $number, int $convId, string $to, string $body, ?int $ticketId = null): bool
     {
         $db = $this->app->db();
         $now = Clock::nowDb();
@@ -363,11 +367,13 @@ final class WhatsAppService
             if ($tmId !== null) {
                 $db->run("UPDATE ticket_messages SET delivery_status = 'sent' WHERE id = ?", [$tmId]);
             }
+            return true;
         } catch (\Throwable $e) {
             if ($tmId !== null) {
                 $db->run("UPDATE ticket_messages SET delivery_status = 'failed' WHERE id = ?", [$tmId]);
             }
             $this->app->logger()->warning('WhatsApp automático no enviado: ' . $e->getMessage());
+            return false;
         }
     }
 
