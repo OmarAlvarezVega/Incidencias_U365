@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  esquema:
+    name: Esquema en MariaDB ${{ matrix.mariadb }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mariadb: ['10.6', '10.11', '11.4']
+    services:
+      mariadb:
+        image: mariadb:${{ matrix.mariadb }}
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: u365t
+          MARIADB_USER: t
+          MARIADB_PASSWORD: t
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql
+          coverage: none
+      - name: Aplicar migraciones
+        run: |
+          for f in database/migrations/*.sql; do
+            echo "Aplicando $f"
+            mysql -h127.0.0.1 -P3306 -ut -pt --default-character-set=utf8mb4 u365t < "$f"
+          done
+      - name: Pruebas del esquema
+        env:
+          TEST_DB_DSN: mysql:host=127.0.0.1;port=3306;dbname=u365t;charset=utf8mb4
+          TEST_DB_USER: t
+          TEST_DB_PASS: t
+        run: php tests/Schema/schema_test.php
+
+  diagnostico:
+    name: Sintaxis del diagnóstico en PHP ${{ matrix.php }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.0', '7.4', '8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - run: php -l tools/diagnostico.php
