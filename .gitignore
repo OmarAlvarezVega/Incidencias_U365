@@ -1,0 +1,20 @@
+# Configuración con secretos: nunca en el repositorio
+/config/config.php
+/config/*.key
+.env
+.env.*
+
+# Datos de ejecución
+/storage/*
+!/storage/.gitkeep
+
+# Dependencias (se instalan con Composer)
+/vendor/
+
+# Herramientas y sistema
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+.phpunit.result.cache
