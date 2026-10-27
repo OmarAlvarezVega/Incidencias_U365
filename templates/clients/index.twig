@@ -1,0 +1,45 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}Clientes{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Clientes</h1><div class="subtitle">{{ total|num }} cliente{{ total == 1 ? '' : 's' }}</div></div>
+    {% if can('clients.manage') %}<a class="btn btn-primary btn-sm" href="/clientes/nuevo"><i class="bi bi-plus-lg"></i> Nuevo cliente</a>{% endif %}
+</div>
+<form class="card card-body mb-3 py-2" method="get" action="/clientes">
+    <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-6"><label class="form-label small mb-0" for="cq">Buscar</label><input class="form-control form-control-sm" id="cq" name="q" value="{{ q }}" placeholder="Nombre, nombre comercial, NIF/CIF, código o correo"></div>
+        <div class="col-6 col-md-3"><label class="form-label small mb-0" for="cestado">Estado</label>
+            <select class="form-select form-select-sm" id="cestado" name="estado" data-autosubmit>
+                <option value="active" {{ status == 'active' ? 'selected' }}>Activos</option>
+                <option value="inactive" {{ status == 'inactive' ? 'selected' }}>Inactivos</option>
+                <option value="todos" {{ status not in ['active','inactive'] ? 'selected' }}>Todos</option>
+            </select></div>
+        <div class="col-6 col-md-2 d-grid"><button class="btn btn-sm btn-primary">Buscar</button></div>
+    </div>
+</form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Código</th><th>Cliente</th><th>NIF/CIF</th><th>Contacto</th><th class="text-end">Contactos</th><th class="text-end">Abiertas</th><th>Alta</th></tr></thead>
+    <tbody>
+    {% for c in rows %}
+        <tr>
+            <td class="text-muted small text-nowrap">{{ c.code }}</td>
+            <td><a class="row-link" href="/clientes/{{ c.id }}">{{ c.trade_name ?: c.legal_name }}</a>
+                {% if c.trade_name and c.trade_name != c.legal_name %}<div class="small text-muted">{{ c.legal_name }}</div>{% endif %}
+                {% if c.status == 'inactive' %}<span class="badge text-bg-secondary">Inactivo</span>{% endif %}
+                {% if c.client_type == 'individual' %}<span class="badge text-bg-light">Particular</span>{% endif %}</td>
+            <td class="small">{{ c.tax_id }}</td>
+            <td class="small">{{ c.phone }}{% if c.email %}<div class="text-muted">{{ c.email }}</div>{% endif %}</td>
+            <td class="text-end">{{ c.contacts }}</td>
+            <td class="text-end">{% if c.open_tickets > 0 %}<a href="/incidencias?vista=abiertas&cliente={{ c.id }}">{{ c.open_tickets }}</a>{% else %}0{% endif %}</td>
+            <td class="small text-nowrap">{{ c.registered_on|dia }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="7" class="empty-state"><i class="bi bi-buildings"></i>{{ q ? 'Ningún cliente coincide con la búsqueda.' : 'Todavía no hay clientes.' }}</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div></div>
+{{ m.pagination(total, page, per) }}
+{% endblock %}

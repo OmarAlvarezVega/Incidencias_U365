@@ -1,0 +1,95 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}{{ a ? a.name : 'Nuevo buzón' }}{% endblock %}
+{% macro input(name, label, value, opts) %}
+<div class="{{ opts.col ?? 'col-md-6' }}">
+    <label class="form-label {{ opts.required ?? false ? 'required' }}" for="f_{{ name }}">{{ label }}</label>
+    <input class="form-control {{ error(name) ? 'is-invalid' }}" id="f_{{ name }}" name="{{ name }}" type="{{ opts.type ?? 'text' }}" value="{{ old(name, value) }}" {{ opts.required ?? false ? 'required' }} {% if opts.ph is defined %}placeholder="{{ opts.ph }}"{% endif %} autocomplete="off">
+    {% if error(name) %}<div class="invalid-feedback">{{ error(name) }}</div>{% endif %}
+    {% if opts.help is defined %}<div class="form-text">{{ opts.help }}</div>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+{% import _self as f %}
+<div class="page-header">
+    <div><h1>{{ a ? a.name : 'Nuevo buzón' }}</h1>{% if a %}<div class="subtitle">{{ a.address }}{% if a.last_polled_at %} · última lectura {{ a.last_polled_at|hace }}{% endif %}</div>{% endif %}</div>
+    {% if a %}<div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-secondary btn-sm" href="/admin/correo/{{ a.id }}/registro"><i class="bi bi-journal-text"></i> Registro</a>
+        <form method="post" action="/admin/correo/{{ a.id }}/procesar" data-loading>{{ csrf_field() }}<button class="btn btn-outline-primary btn-sm" {{ a.active ? '' : 'disabled' }}><i class="bi bi-arrow-repeat"></i> Procesar ahora</button></form>
+    </div>{% endif %}
+</div>
+{% if a and a.last_error %}<div class="alert alert-danger small"><strong>Último error:</strong> {{ a.last_error }}</div>{% endif %}
+<form method="post" action="{{ a ? '/admin/correo/' ~ a.id : '/admin/correo' }}" autocomplete="off">
+{{ csrf_field() }}
+{% set auth = old('auth_type', a.auth_type ?? 'oauth2_microsoft') %}
+<div class="card mb-3"><div class="card-header">Buzón</div><div class="card-body"><div class="row g-3">
+    {{ f.input('name', 'Nombre interno', a.name ?? 'Soporte', {required: true}) }}
+    {{ f.input('address', 'Dirección', a.address ?? '', {required: true, type: 'email', ph: 'soporte@univers365.com'}) }}
+    {{ f.input('from_name', 'Nombre del remitente', a.from_name ?? 'Soporte UNIVERS365', {required: true}) }}
+    <div class="col-md-6"><label class="form-label required" for="f_auth">Autenticación</label>
+        <select class="form-select" id="f_auth" name="auth_type">
+            <option value="oauth2_microsoft" {{ auth == 'oauth2_microsoft' ? 'selected' }}>Microsoft 365 · OAuth2 (recomendado)</option>
+            <option value="password" {{ auth == 'password' ? 'selected' }}>Usuario y contraseña (otros proveedores)</option>
+        </select>
+        <div class="form-text">Microsoft 365 tiene desactivada la autenticación básica: usa OAuth2.</div></div>
+</div></div></div>
+
+<div class="card mb-3" data-show-when="#f_auth=oauth2_microsoft"><div class="card-header">Aplicación de Microsoft Entra ID</div><div class="card-body"><div class="row g-3">
+    {{ f.input('oauth_tenant_id', 'Id. de directorio (tenant)', a.oauth_tenant_id ?? '', {ph: '00000000-0000-0000-0000-000000000000'}) }}
+    {{ f.input('oauth_client_id', 'Id. de aplicación (client)', a.oauth_client_id ?? '', {ph: '00000000-0000-0000-0000-000000000000'}) }}
+    <div class="col-12 form-text">Pasos en el manual «Configuración del correo»: registrar la aplicación, permisos IMAP.AccessAsApp y SMTP.SendAsApp, consentimiento de administrador y alta del principal de servicio en Exchange Online con acceso a este buzón.</div>
+</div></div></div>
+
+<div class="card mb-3"><div class="card-header">Credencial</div><div class="card-body"><div class="row g-3">
+    <div class="col-md-6"><label class="form-label" for="f_secret"><span data-show-when="#f_auth=oauth2_microsoft">Secreto de la aplicación (valor)</span><span data-show-when="#f_auth=password">Contraseña IMAP</span></label>
+        <input class="form-control {{ error('secret') ? 'is-invalid' }}" type="password" id="f_secret" name="secret" autocomplete="new-password" placeholder="{{ has_secret ? '•••••••• guardado — escribe solo para cambiarlo' : '' }}">
+        {% if error('secret') %}<div class="invalid-feedback">{{ error('secret') }}</div>{% endif %}
+        <div class="form-text">Se guarda cifrado y no se vuelve a mostrar.{% if auth == 'oauth2_microsoft' %} Los secretos de Entra ID caducan: anota la fecha.{% endif %}</div></div>
+    <div class="col-md-6" data-show-when="#f_auth=password"><label class="form-label" for="f_smtp_secret">Contraseña SMTP (si es distinta)</label>
+        <input class="form-control" type="password" id="f_smtp_secret" name="smtp_secret" autocomplete="new-password" placeholder="{{ has_smtp_secret ? '•••••••• guardada' : 'Se usa la de IMAP' }}"></div>
+</div></div></div>
+
+<div class="row g-3 mb-3">
+<div class="col-lg-6"><div class="card h-100"><div class="card-header">Recepción (IMAP)</div><div class="card-body"><div class="row g-3">
+    {{ f.input('imap_host', 'Servidor', a.imap_host ?? 'outlook.office365.com', {required: true, col: 'col-8'}) }}
+    {{ f.input('imap_port', 'Puerto', a.imap_port ?? 993, {required: true, type: 'number', col: 'col-4'}) }}
+    <div class="col-6"><label class="form-label" for="f_ie">Cifrado</label>{% set ie = old('imap_encryption', a.imap_encryption ?? 'ssl') %}
+        <select class="form-select" id="f_ie" name="imap_encryption"><option value="ssl" {{ ie == 'ssl' ? 'selected' }}>SSL/TLS</option><option value="starttls" {{ ie == 'starttls' ? 'selected' }}>STARTTLS</option></select></div>
+    {{ f.input('imap_username', 'Usuario', a.imap_username ?? '', {required: true, col: 'col-6', help: 'Normalmente la propia dirección.'}) }}
+    {{ f.input('imap_folder', 'Carpeta a leer', a.imap_folder ?? 'INBOX', {required: true, col: 'col-6'}) }}
+    {{ f.input('processed_folder', 'Mover procesados a', a.processed_folder ?? '', {col: 'col-6', ph: 'Procesados', help: 'Opcional. Si se deja vacío, solo se marcan como leídos.'}) }}
+</div></div></div></div>
+<div class="col-lg-6"><div class="card h-100"><div class="card-header">Envío (SMTP)</div><div class="card-body"><div class="row g-3">
+    {{ f.input('smtp_host', 'Servidor', a.smtp_host ?? 'smtp.office365.com', {required: true, col: 'col-8'}) }}
+    {{ f.input('smtp_port', 'Puerto', a.smtp_port ?? 587, {required: true, type: 'number', col: 'col-4'}) }}
+    <div class="col-6"><label class="form-label" for="f_se">Cifrado</label>{% set se = old('smtp_encryption', a.smtp_encryption ?? 'starttls') %}
+        <select class="form-select" id="f_se" name="smtp_encryption"><option value="ssl" {{ se == 'ssl' ? 'selected' }}>SSL/TLS (465)</option><option value="starttls" {{ se == 'starttls' ? 'selected' }}>STARTTLS (587)</option></select></div>
+    {{ f.input('smtp_username', 'Usuario SMTP', a.smtp_username ?? '', {col: 'col-6', help: 'Vacío = el mismo que IMAP.'}) }}
+</div></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header">Comportamiento</div><div class="card-body"><div class="row g-3">
+    <div class="col-md-6"><label class="form-label" for="f_usp">Remitentes que no son de ningún cliente</label>{% set usp = old('unknown_sender_policy', a.unknown_sender_policy ?? 'review') %}
+        <select class="form-select" id="f_usp" name="unknown_sender_policy">
+            <option value="review" {{ usp == 'review' ? 'selected' }}>Enviar a la cola de revisión (recomendado: filtra publicidad)</option>
+            <option value="create_pending" {{ usp == 'create_pending' ? 'selected' }}>Crear incidencia «sin identificar»</option>
+        </select></div>
+    {{ f.input('poll_interval_minutes', 'Leer cada (minutos)', a.poll_interval_minutes ?? 5, {required: true, type: 'number', col: 'col-md-3'}) }}
+    {{ f.input('max_attachment_mb', 'Máx. por adjunto (MB)', a.max_attachment_mb ?? 15, {required: true, type: 'number', col: 'col-md-3'}) }}
+    <div class="col-md-6 d-flex gap-4">
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="f_active" name="active" value="1" {{ (a.active ?? false) ? 'checked' }}><label class="form-check-label" for="f_active">Activo</label></div>
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="f_def" name="is_default" value="1" {{ (a.is_default ?? true) ? 'checked' }}><label class="form-check-label" for="f_def">Buzón predeterminado para envíos</label></div>
+    </div>
+    <div class="col-12 form-text">La primera vez que se lee el buzón, los correos que ya estaban en la carpeta se ignoran: solo se procesan los que lleguen después.</div>
+</div></div></div>
+<div class="d-flex gap-2 mb-4"><button class="btn btn-primary">Guardar</button><a class="btn btn-light" href="/admin/correo">Volver</a></div>
+</form>
+
+{% if a %}
+<div class="card"><div class="card-header">Probar conexión</div><div class="card-body">
+    <form method="post" action="/admin/correo/{{ a.id }}/probar" class="row g-2 align-items-end" data-loading>{{ csrf_field() }}
+        <div class="col-md-6"><label class="form-label small" for="test_to">Enviar además un correo de prueba a (opcional)</label><input class="form-control form-control-sm" type="email" id="test_to" name="test_to" placeholder="tu@univers365.com"></div>
+        <div class="col-md-3 d-grid"><button class="btn btn-sm btn-outline-primary">Probar IMAP y SMTP</button></div>
+    </form>
+</div></div>
+{% endif %}
+{% endblock %}

@@ -877,7 +877,7 @@ CREATE TABLE whatsapp_webhook_events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE whatsapp_conversations (
-  id                SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  id                INT UNSIGNED NOT NULL AUTO_INCREMENT,
   number_id         SMALLINT UNSIGNED NOT NULL,
   wa_id             VARCHAR(20)  NOT NULL COMMENT 'Teléfono del cliente en formato E.164 sin +',
   profile_name      VARCHAR(120) NULL,
@@ -897,7 +897,7 @@ CREATE TABLE whatsapp_conversations (
 
 CREATE TABLE whatsapp_messages (
   id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  conversation_id   SMALLINT UNSIGNED NOT NULL,
+  conversation_id   INT UNSIGNED NOT NULL,
   wamid             VARCHAR(191) NOT NULL COMMENT 'Identificador de mensaje de Meta: evita duplicados',
   direction         ENUM('inbound','outbound') NOT NULL,
   ticket_id         BIGINT UNSIGNED NULL,
@@ -1071,8 +1071,11 @@ CREATE TABLE backup_runs (
   KEY ix_backup_started (started_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Auditoría global. Solo INSERT desde la aplicación. Cada fila guarda el hash
--- de la anterior (cadena): un borrado o una modificación posterior se detecta.
+-- Auditoría global. Solo INSERT desde la aplicación. Un proceso de sellado
+-- encadena las filas en orden (chain_seq) guardando el hash de la anterior:
+-- un borrado o una modificación posterior rompe la cadena y se detecta.
+-- El sellado es posterior a la inserción para que las transacciones
+-- concurrentes no generen dos filas con el mismo predecesor.
 CREATE TABLE audit_logs (
   id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   occurred_at   DATETIME(6) NOT NULL,
@@ -1083,9 +1086,11 @@ CREATE TABLE audit_logs (
   entity_id     VARCHAR(40)  NULL,
   ip            VARBINARY(16) NULL,
   details       JSON NULL COMMENT 'Nunca contraseñas, tokens ni secretos',
-  prev_hash     CHAR(64) NOT NULL,
-  row_hash      CHAR(64) NOT NULL,
+  chain_seq     BIGINT UNSIGNED NULL COMMENT 'Orden en la cadena; NULL = aún sin sellar',
+  prev_hash     CHAR(64) NULL,
+  row_hash      CHAR(64) NULL,
   PRIMARY KEY (id),
+  UNIQUE KEY uq_al_chain (chain_seq),
   KEY ix_al_entity (entity_type, entity_id),
   KEY ix_al_actor (actor_user_id, occurred_at),
   KEY ix_al_action (action, occurred_at),

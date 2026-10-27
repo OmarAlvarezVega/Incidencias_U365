@@ -1,0 +1,57 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}Panel{% endblock %}
+{% block content %}
+<div class="page-header" data-dashboard-source="/panel/datos">
+    <div><h1>Hola, {{ current_user.name|split(' ')|first }}</h1><div class="subtitle">Resumen de las incidencias a las que tienes acceso</div></div>
+    {% if timer %}<div class="timer-pill"><i class="bi bi-stopwatch"></i> <a class="text-reset" href="/incidencias/{{ timer.ticket_id }}">{{ timer.ticket_number }}</a> <span data-timer-local>…</span></div>{% endif %}
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-4 col-xl-2"><a class="kpi" href="/incidencias?vista=abiertas"><div class="label">Abiertas</div><div class="value">{{ kpis.open_total|num }}</div><div class="hint">en tu ámbito</div></a></div>
+    <div class="col-6 col-md-4 col-xl-2"><a class="kpi" href="/incidencias?vista=mias"><div class="label">Mías</div><div class="value">{{ kpis.mine|num }}</div><div class="hint">como responsable</div></a></div>
+    <div class="col-6 col-md-4 col-xl-2"><a class="kpi {{ kpis.unassigned ? 'alert-warning' }}" href="/incidencias?vista=sin_asignar"><div class="label">Sin asignar</div><div class="value">{{ kpis.unassigned|num }}</div><div class="hint">pendientes de reparto</div></a></div>
+    <div class="col-6 col-md-4 col-xl-2"><a class="kpi {{ kpis.overdue ? 'alert-critical' }}" href="/incidencias?vista=vencidas"><div class="label">Vencidas / SLA</div><div class="value">{{ kpis.overdue|num }}</div><div class="hint">{{ kpis.at_risk|num }} en riesgo</div></a></div>
+    <div class="col-6 col-md-4 col-xl-2"><a class="kpi" href="/incidencias?estado=pending_customer"><div class="label">Esperando cliente</div><div class="value">{{ kpis.waiting_customer|num }}</div><div class="hint">reloj SLA en pausa</div></a></div>
+    <div class="col-6 col-md-4 col-xl-2"><div class="kpi"><div class="label">Hoy</div><div class="value">{{ kpis.created_today|num }} <small class="fs-6 text-muted">/ {{ kpis.resolved_today|num }}</small></div><div class="hint">creadas / resueltas</div></div></div>
+</div>
+{% if kpis.review_queue or kpis.unidentified %}
+<div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center py-2">
+    <i class="bi bi-funnel"></i>
+    {% if kpis.review_queue %}<a href="/revision">{{ kpis.review_queue }} correo{{ kpis.review_queue == 1 ? '' : 's' }} pendiente{{ kpis.review_queue == 1 ? '' : 's' }} de revisión</a>{% endif %}
+    {% if kpis.unidentified %}<a href="/incidencias?vista=sin_identificar">{{ kpis.unidentified }} incidencia{{ kpis.unidentified == 1 ? '' : 's' }} sin cliente identificado</a>{% endif %}
+</div>
+{% endif %}
+<div class="row g-3 mb-3">
+    <div class="col-lg-8"><div class="card h-100"><div class="card-header">Creadas y resueltas (30 días)</div><div class="card-body"><div class="chart-box"><canvas data-chart="trend" aria-label="Gráfico de incidencias creadas y resueltas"></canvas></div></div></div></div>
+    <div class="col-lg-4"><div class="card h-100"><div class="card-header">Abiertas por estado</div><div class="card-body"><div class="chart-box"><canvas data-chart="status" aria-label="Incidencias abiertas por estado"></canvas></div></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-lg-7"><div class="card h-100"><div class="card-header d-flex justify-content-between">Mis incidencias abiertas <a class="small fw-normal" href="/incidencias?vista=mias">Ver todas</a></div>
+        <div class="table-responsive"><table class="table table-hover table-tickets">
+        <tbody>
+        {% for t in mine %}
+            <tr><td><span class="ticket-number">{{ t.ticket_number }}</span><br><a class="row-link" href="/incidencias/{{ t.id }}">{{ t.subject }}</a><div class="small text-muted">{{ t.client ?: 'Sin identificar' }}</div></td>
+            <td>{{ m.status(t.status, t.status_color) }}<div class="mt-1 small">{{ m.priority(t.priority, t.priority_color) }}</div></td>
+            <td class="small text-muted text-end">{{ m.sla(t) }}<div>{{ t.last_activity_at|hace }}</div></td></tr>
+        {% else %}
+            <tr><td class="empty-state"><i class="bi bi-check2-circle"></i>No tienes incidencias abiertas.</td></tr>
+        {% endfor %}
+        </tbody></table></div></div></div>
+    <div class="col-lg-5"><div class="card h-100"><div class="card-header">Abiertas por prioridad</div><div class="card-body"><div class="chart-box"><canvas data-chart="priority" aria-label="Incidencias abiertas por prioridad"></canvas></div></div></div></div>
+</div>
+<div class="row g-3">
+    {% if unassigned is not empty %}
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">Sin asignar <a class="small fw-normal" href="/incidencias?vista=sin_asignar">Ver todas</a></div>
+        <ul class="list-group list-group-flush">
+        {% for t in unassigned %}
+            <li class="list-group-item"><span class="ticket-number">{{ t.ticket_number }}</span> {{ m.priority(t.priority, t.priority_color) }}<br>
+            <a class="row-link" href="/incidencias/{{ t.id }}">{{ t.subject }}</a><div class="small text-muted">{{ t.client ?: 'Remitente desconocido' }} · {{ t.created_at|hace }}</div></li>
+        {% endfor %}
+        </ul></div></div>
+    {% endif %}
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header">Carga por responsable</div><div class="card-body"><div class="chart-box"><canvas data-chart="owner" aria-label="Incidencias abiertas por responsable"></canvas></div></div></div></div>
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header">Categorías (30 días)</div><div class="card-body"><div class="chart-box"><canvas data-chart="category" aria-label="Incidencias por categoría"></canvas></div></div></div></div>
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header">Canal de entrada (30 días)</div><div class="card-body"><div class="chart-box"><canvas data-chart="channel" aria-label="Incidencias por canal"></canvas></div></div></div></div>
+</div>
+{% endblock %}
+{% block scripts_before %}<script src="{{ asset('vendor/chartjs/chart.umd.min.js') }}"></script>{% endblock %}

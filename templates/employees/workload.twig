@@ -1,0 +1,36 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Carga de trabajo{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Carga de trabajo</h1><div class="subtitle">Incidencias abiertas por persona · {{ unassigned }} sin asignar{% if can('tickets.view.unassigned') or can('tickets.view.all') %} · <a href="/incidencias?vista=sin_asignar">ver bandeja</a>{% endif %}</div></div>
+    {% if teams|length > 1 %}
+    <form method="get" action="/carga"><select class="form-select form-select-sm" name="equipo" aria-label="Equipo" data-autosubmit><option value="">Todos los equipos</option>{% for t in teams %}<option value="{{ t.id }}" {{ team == t.id ? 'selected' }}>{{ t.name }}</option>{% endfor %}</select></form>
+    {% endif %}
+</div>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Empleado</th><th style="min-width: 12rem">Carga</th><th class="text-end">Responsable</th><th class="text-end">Alta/crítica</th><th class="text-end">Vencidas</th><th class="text-end">Esperando cliente</th><th class="text-end">Colabora</th><th class="text-end">Tiempo semana</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+        {% set color = r.load >= 100 ? 'danger' : (r.load >= 75 ? 'warning' : 'success') %}
+        <tr>
+            <td>{% if can('employees.view') %}<a class="row-link" href="/empleados/{{ r.id }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}
+                {% if r.running_ticket %}<i class="bi bi-record-circle text-danger" title="Temporizador en marcha"></i>{% endif %}
+                <div class="small text-muted">{{ r.teams ?: 'Sin equipo' }}</div></td>
+            <td><div class="progress" role="progressbar" aria-label="Carga de {{ r.name }}" aria-valuenow="{{ r.load }}" aria-valuemin="0" aria-valuemax="100" style="height: .6rem"><div class="progress-bar bg-{{ color }}" style="width: {{ min(r.load, 100) }}%"></div></div>
+                <div class="small text-muted">{{ r.load }} % de {{ r.capacity }}</div></td>
+            <td class="text-end"><a href="/incidencias?vista=abiertas&responsable={{ r.id }}">{{ r.owned }}</a></td>
+            <td class="text-end">{{ r.high }}</td>
+            <td class="text-end {{ r.overdue > 0 ? 'text-danger fw-semibold' }}">{{ r.overdue }}</td>
+            <td class="text-end">{{ r.waiting }}</td>
+            <td class="text-end">{{ r.collaborating }}</td>
+            <td class="text-end text-nowrap">{{ r.week_minutes|minutos }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="8" class="empty-state"><i class="bi bi-people"></i>No hay empleados en tu ámbito.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div></div>
+<p class="small text-muted mt-2">La carga cuenta cada incidencia como responsable al 100 % y cada colaboración al 50 %, frente al límite de la ficha del empleado (por defecto {{ default }}). Es orientativa: no mide la complejidad.</p>
+{% endblock %}

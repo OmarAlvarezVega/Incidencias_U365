@@ -1,0 +1,350 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}{{ t.ticket_number }}{% endblock %}
+{% set event_labels = {
+    created: 'Incidencia creada', updated: 'Datos modificados', status_changed: 'Cambio de estado', reopened: 'Reabierta',
+    priority_changed: 'Cambio de prioridad', owner_changed: 'Cambio de responsable', participants_changed: 'Cambio de colaboradores',
+    team_changed: 'Cambio de equipo', identified: 'Cliente identificado', reply_sent: 'Respuesta al cliente', customer_message: 'Mensaje del cliente',
+    tags_changed: 'Etiquetas', relation_added: 'Relación añadida', relation_removed: 'Relación eliminada', deleted: 'Eliminada',
+    timer_started: 'Temporizador iniciado', timer_stopped: 'Temporizador detenido', time_added: 'Tiempo registrado', time_edited: 'Tiempo corregido',
+    time_deleted: 'Tiempo eliminado', sla_breached: 'SLA incumplido', delivery_failed: 'Entrega fallida', attachments_added: 'Adjuntos', reply_resent: 'Reenvío de respuesta'
+} %}
+{% set relation_labels = {related: 'Relacionada con', duplicate_of: 'Duplicada de', parent_of: 'Incidencia padre de', blocks: 'Bloquea a'} %}
+{% set relation_labels_in = {related: 'Relacionada con', duplicate_of: 'Tiene como duplicada', parent_of: 'Hija de', blocks: 'Bloqueada por'} %}
+{% set delivery = {received: ['Recibido', 'text-bg-light'], queued: ['En cola', 'text-bg-secondary'], sent: ['Enviado', 'text-bg-primary'], delivered: ['Entregado', 'text-bg-info'], read: ['Leído', 'text-bg-success'], failed: ['Fallido', 'text-bg-danger']} %}
+{% block content %}
+<div class="ticket-head">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+        <div class="min-w-0">
+            <span class="ticket-number">{{ t.ticket_number }}</span> {{ m.status(t.status, t.status_color) }} {{ m.priority(t.priority, t.priority_color) }}
+            {% for tg in tags %}<span class="tag ms-1" style="border-left: 3px solid {{ tg.color|safe_color }}">{{ tg.name }}</span>{% endfor %}
+            <h1>{{ t.subject }}</h1>
+        </div>
+        <div class="d-flex gap-2 align-items-start flex-wrap">
+            {% if can.time %}
+                {% if timer and timer.ticket_id == t.id %}
+                <form method="post" action="/temporizador/parar" data-timer-form>{{ csrf_field() }}<input type="hidden" name="back" value="/incidencias/{{ t.id }}">
+                    <button class="btn btn-success btn-sm"><i class="bi bi-stop-circle"></i> Parar <span data-timer-local>…</span></button></form>
+                {% else %}
+                <form method="post" action="/incidencias/{{ t.id }}/temporizador/iniciar" data-timer-form {% if timer %}data-confirm="Tienes el temporizador en marcha en {{ timer.ticket_number }}. Se parará y empezará en esta incidencia."{% endif %}>{{ csrf_field() }}
+                    <button class="btn btn-outline-success btn-sm"><i class="bi bi-play-circle"></i> Iniciar temporizador</button></form>
+                {% endif %}
+            {% endif %}
+            {% if can.take %}<form method="post" action="/incidencias/{{ t.id }}/asumir">{{ csrf_field() }}<button class="btn btn-primary btn-sm"><i class="bi bi-hand-index"></i> Asumir</button></form>{% endif %}
+        </div>
+    </div>
+    <div class="meta-grid mt-2">
+        <div><div class="k">Cliente</div><div class="v">{% if t.client_id %}<a href="/clientes/{{ t.client_id }}">{{ t.trade_name ?: t.legal_name }}</a>{% else %}<span class="text-warning-emphasis">Sin identificar</span>{% endif %}</div></div>
+        <div><div class="k">Contacto</div><div class="v">{{ t.contact_name|trim ?: (t.requester_email ?: t.requester_phone ?: '—') }}</div></div>
+        <div><div class="k">Responsable</div><div class="v">{{ t.owner_name ?: 'Sin asignar' }}</div></div>
+        <div><div class="k">Colaboradores</div><div class="v">{% for p in participants|filter(p => p.role == 'collaborator') %}{{ p.name }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</div></div>
+        <div><div class="k">Equipo</div><div class="v">{{ t.team ?: '—' }}</div></div>
+        <div><div class="k">Categoría</div><div class="v">{{ t.category ?: '—' }}</div></div>
+        <div><div class="k">Canal</div><div class="v">{{ t.channel }}</div></div>
+        <div><div class="k">Creada</div><div class="v">{{ t.created_at|fecha }}</div></div>
+        <div><div class="k">Fecha límite</div><div class="v">{{ t.due_at ? t.due_at|fecha : '—' }}</div></div>
+        <div><div class="k">Tiempo total</div><div class="v">{{ t.total_minutes|minutos }}</div></div>
+        {% if sla %}
+        <div><div class="k">SLA 1.ª respuesta</div><div class="v {{ sla.first_response_breached_at ? 'overdue' }}">{% if t.first_response_at %}<i class="bi bi-check2"></i> {{ t.first_response_at|fecha }}{% else %}{{ sla.first_response_due_at|fecha }}{% endif %}{% if sla.paused_since %} <span class="badge text-bg-warning">en pausa</span>{% endif %}</div></div>
+        {% if sla.resolution_due_at %}<div><div class="k">SLA resolución</div><div class="v {{ sla.resolution_breached_at ? 'overdue' }}">{{ sla.resolution_due_at|fecha }}</div></div>{% endif %}
+        {% endif %}
+    </div>
+</div>
+
+{% if t.identification_status == 'pending' %}
+<div class="alert alert-warning">
+    <strong>Remitente sin identificar:</strong> {{ t.requester_email ?: t.requester_phone }}.
+    {% if can.edit %}Asócialo a un cliente para que cuente en sus estadísticas y se le reconozca la próxima vez.
+    <form class="row g-2 mt-1" method="post" action="/incidencias/{{ t.id }}/identificar">
+        {{ csrf_field() }}
+        <div class="col-md-3"><input class="form-control form-control-sm" data-client-filter placeholder="Buscar cliente" aria-label="Buscar cliente"></div>
+        <div class="col-md-3"><select class="form-select form-select-sm" name="client_id" data-client-select="#ident_contact" aria-label="Cliente"><option value="">Cliente…</option>{% for c in catalog.clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><select class="form-select form-select-sm" id="ident_contact" name="contact_id" aria-label="Contacto"><option value="">Sin contacto</option></select></div>
+        <div class="col-md-3 d-flex gap-2 align-items-center"><div class="form-check small"><input class="form-check-input" type="checkbox" name="remember_sender" value="1" id="remember" checked><label class="form-check-label" for="remember">Recordar remitente</label></div><button class="btn btn-sm btn-warning">Asociar</button></div>
+    </form>{% endif %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+<div class="col-xl-8">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-conv" type="button" role="tab">Conversación</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-hist" type="button" role="tab">Historial</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-time" type="button" role="tab">Tiempo <span class="badge text-bg-light">{{ t.total_minutes|minutos }}</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-rel" type="button" role="tab">Relaciones{% if relations %} <span class="badge text-bg-light">{{ relations|length }}</span>{% endif %}</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-det" type="button" role="tab">Detalles</button></li>
+    </ul>
+    <div class="tab-content bg-white border border-top-0 rounded-bottom p-3 mb-3">
+    <div class="tab-pane fade show active" id="tab-conv" role="tabpanel">
+
+        {% if can.reply or can.note %}
+        <ul class="nav nav-pills nav-sm mb-2 small" role="tablist">
+            {% if can.reply %}<li class="nav-item"><button class="nav-link active py-1" data-bs-toggle="pill" data-bs-target="#f-reply" type="button">Responder al cliente</button></li>{% endif %}
+            {% if can.note %}<li class="nav-item"><button class="nav-link py-1 {{ not can.reply ? 'active' }}" data-bs-toggle="pill" data-bs-target="#f-note" type="button">Nota interna</button></li>
+            <li class="nav-item"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#f-action" type="button">Actuación técnica</button></li>{% endif %}
+        </ul>
+        <div class="tab-content mb-3">
+            {% if can.reply %}
+            <div class="tab-pane fade show active" id="f-reply">
+            <form method="post" action="/incidencias/{{ t.id }}/responder" enctype="multipart/form-data" class="border rounded p-2 bg-light">
+                {{ csrf_field() }}
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2 small">
+                    <label for="channel" class="fw-semibold">Enviar por</label>
+                    <select class="form-select form-select-sm w-auto" name="channel" id="channel">
+                        <option value="email" {{ customer_email ? '' : 'disabled' }}>Correo{{ customer_email ? ' a ' ~ customer_email : ' (sin dirección)' }}</option>
+                        {% if wa_conv %}<option value="whatsapp" {{ t.channel_code == 'whatsapp' ? 'selected' }} {{ (not wa_window and not wa_template) ? 'disabled' }}>WhatsApp +{{ wa_conv.wa_id }}{{ wa_window ? '' : (wa_template ? ' (plantilla, fuera de 24 h)' : ' (fuera de la ventana de 24 h)') }}</option>{% endif %}
+                    </select>
+                </div>
+                <textarea class="form-control mb-2" name="body" rows="5" required placeholder="Escribe la respuesta. El cliente la recibirá con la firma y la referencia de la incidencia." aria-label="Respuesta al cliente"></textarea>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    {% if can.upload %}<input class="form-control form-control-sm w-auto" type="file" name="files[]" multiple aria-label="Adjuntos">{% endif %}
+                    <select class="form-select form-select-sm w-auto" name="status_after" aria-label="Estado después de responder"><option value="">Sin cambiar el estado</option>
+                        {% for st in transitions %}<option value="{{ st.id }}" {{ st.code == 'pending_customer' ? 'selected' }}>Después: {{ st.name }}</option>{% endfor %}</select>
+                    <button class="btn btn-primary btn-sm ms-auto"><i class="bi bi-send"></i> Enviar respuesta</button>
+                </div>
+            </form>
+            </div>
+            {% endif %}
+            {% if can.note %}
+            <div class="tab-pane fade {{ not can.reply ? 'show active' }}" id="f-note">
+            <form method="post" action="/incidencias/{{ t.id }}/nota" enctype="multipart/form-data" class="border rounded p-2" style="background:#fffbea">
+                {{ csrf_field() }}<input type="hidden" name="kind" value="internal_note">
+                <div class="internal-banner mb-2"><i class="bi bi-lock"></i> Solo para el equipo. Nunca se envía al cliente.</div>
+                <textarea class="form-control mb-2" name="body" rows="4" required aria-label="Nota interna"></textarea>
+                <div class="d-flex gap-2 align-items-center">{% if can.upload %}<input class="form-control form-control-sm w-auto" type="file" name="files[]" multiple aria-label="Adjuntos internos">{% endif %}<button class="btn btn-warning btn-sm ms-auto">Añadir nota</button></div>
+            </form>
+            </div>
+            <div class="tab-pane fade" id="f-action">
+            <form method="post" action="/incidencias/{{ t.id }}/nota" enctype="multipart/form-data" class="border rounded p-2">
+                {{ csrf_field() }}<input type="hidden" name="kind" value="technical_action">
+                <textarea class="form-control mb-2" name="body" rows="4" required placeholder="Qué se ha hecho: diagnóstico, cambios, pruebas…" aria-label="Actuación técnica"></textarea>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <select class="form-select form-select-sm w-auto" name="visibility" aria-label="Visibilidad"><option value="internal">Interna</option><option value="public">Visible en el portal del cliente</option></select>
+                    {% if can('time.log') %}<div class="input-group input-group-sm w-auto"><input class="form-control" type="number" name="minutes" min="1" max="1440" placeholder="Minutos" aria-label="Minutos dedicados"><span class="input-group-text">min</span></div>{% endif %}
+                    {% if can.upload %}<input class="form-control form-control-sm w-auto" type="file" name="files[]" multiple aria-label="Adjuntos">{% endif %}
+                    <button class="btn btn-success btn-sm ms-auto">Registrar actuación</button>
+                </div>
+            </form>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-between align-items-center mb-2 small text-muted">
+            <span>{{ feed|length }} entradas{% if pending_jobs %} · {{ pending_jobs }} envío(s) en cola{% endif %}</span>
+            <a href="{{ query({orden_conv: 'asc'}) }}">Orden cronológico</a> · <a href="{{ query({orden_conv: null}) }}">Más recientes primero</a>
+        </div>
+
+        {% if t.description %}
+        <div class="msg"><div class="msg-head"><i class="bi bi-card-text"></i> <strong>Descripción inicial</strong> · {{ t.created_at|fecha }}{% if t.created_by_name %} · {{ t.created_by_name }}{% endif %}</div>
+        <div class="msg-body">{{ t.description|nl2br_safe }}</div></div>
+        {% endif %}
+
+        {% for item in feed %}
+            {% set r = item.row %}
+            {% if item.type == 'message' %}
+            <div class="msg {{ r.direction }}">
+                <div class="msg-head">
+                    <i class="bi {{ r.channel_code == 'whatsapp' ? 'bi-whatsapp' : (r.channel_code == 'email' ? 'bi-envelope' : 'bi-chat') }}"></i>
+                    <strong>{{ r.direction == 'inbound' ? (r.sender_label ?: 'Cliente') : (r.author_name ?: r.sender_label) }}</strong>
+                    <span>{{ r.direction == 'inbound' ? 'escribió' : 'respondió al cliente' }}</span> · <span title="{{ r.created_at|fecha }}">{{ r.created_at|fecha }}</span>
+                    {% if r.is_automatic %}<span class="badge text-bg-light">automático</span>{% endif %}
+                    {% if r.direction == 'outbound' %}<span class="badge {{ delivery[r.delivery_status][1] }}">{{ delivery[r.delivery_status][0] }}</span>
+                        {% if r.delivery_status == 'failed' and not r.is_automatic and can.reply %}
+                        <form method="post" action="/incidencias/{{ t.id }}/reenviar/{{ r.id }}" class="d-inline">{{ csrf_field() }}<button class="btn btn-link btn-sm p-0">Reintentar</button></form>{% endif %}
+                    {% endif %}
+                </div>
+                {% if r.body_html_safe and r.direction == 'inbound' %}
+                    <details><summary class="small text-muted">Ver formato original</summary><div class="msg-body html-body border rounded p-2 my-2">{{ r.body_html_safe|raw }}</div></details>
+                {% endif %}
+                <div class="msg-body">{{ r.body_text|nl2br_safe }}</div>
+                {% include 'tickets/_files.twig' with {files: item.files} %}
+            </div>
+            {% else %}
+            <div class="msg {{ r.kind == 'internal_note' ? 'internal' : 'action' }}">
+                <div class="msg-head">
+                    <i class="bi {{ r.kind == 'internal_note' ? 'bi-lock' : 'bi-tools' }}"></i>
+                    <strong>{{ r.author_name }}</strong> · {{ r.kind == 'internal_note' ? 'nota interna' : 'actuación técnica' }}
+                    {% if r.kind == 'technical_action' %}<span class="badge {{ r.visibility == 'public' ? 'text-bg-info' : 'text-bg-light' }}">{{ r.visibility == 'public' ? 'visible para el cliente' : 'interna' }}</span>{% endif %}
+                    · {{ r.created_at|fecha }}
+                </div>
+                <div class="msg-body">{{ r.body|nl2br_safe }}</div>
+                {% include 'tickets/_files.twig' with {files: item.files} %}
+            </div>
+            {% endif %}
+        {% else %}
+            {% if not t.description %}<div class="empty-state"><i class="bi bi-chat"></i>Todavía no hay mensajes.</div>{% endif %}
+        {% endfor %}
+
+        <h2 class="h6 mt-4" id="adjuntos">Otros adjuntos</h2>
+        {% include 'tickets/_files.twig' with {files: loose_files, show_empty: true} %}
+        {% if can.upload %}
+        <form method="post" action="/incidencias/{{ t.id }}/adjuntos" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 mt-2">
+            {{ csrf_field() }}
+            <input class="form-control form-control-sm w-auto" type="file" name="files[]" multiple required aria-label="Archivos">
+            <select class="form-select form-select-sm w-auto" name="visibility" aria-label="Visibilidad"><option value="internal">Internos</option><option value="public">Visibles para el cliente</option></select>
+            <button class="btn btn-outline-primary btn-sm">Subir</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="tab-pane fade" id="tab-hist" role="tabpanel">
+        <ul class="timeline small">
+        {% for e in events %}
+            <li><strong>{{ event_labels[e.event_type] ?? e.event_type }}</strong> · {{ e.actor ?: 'Sistema' }} · <span class="text-muted">{{ e.created_at|slice(0, 19)|fecha }}</span>
+            {% set ov = e.old_value ? e.old_value|json_decode : null %}{% set nv = e.new_value ? e.new_value|json_decode : null %}
+            {% if ov or nv %}<div class="text-muted">
+                {% if ov %}{% for k, v in ov %}{{ k }}: <s>{{ v is iterable ? v|join(', ') : v }}</s> {% endfor %}{% endif %}
+                {% if nv %}{% if ov %}→ {% endif %}{% for k, v in nv %}{{ k }}: {{ v is iterable ? v|join(', ') : v }} {% endfor %}{% endif %}
+            </div>{% endif %}</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div class="tab-pane fade" id="tab-time" role="tabpanel">
+        <table class="table table-sm small">
+            <thead><tr><th>Fecha</th><th>Empleado</th><th>Tiempo</th><th>Origen</th><th>Descripción</th><th></th></tr></thead>
+            <tbody>
+            {% for te in time %}
+                <tr>
+                    <td>{{ te.work_date|date('d/m/Y') }}</td><td>{{ te.name }}</td>
+                    <td>{% if te.minutes %}{{ te.minutes|minutos }}{% else %}<span class="badge text-bg-success">en marcha</span>{% endif %}</td>
+                    <td>{{ te.source == 'timer' ? 'Temporizador' : 'Manual' }}{% if not te.billable %} · no facturable{% endif %}</td>
+                    <td>{{ te.description }}</td>
+                    <td class="text-end">{% if te.minutes and (te.user_id == current_user.id or can('time.edit_any')) %}
+                        <details><summary class="small">Corregir</summary>
+                        <form method="post" action="/tiempos/{{ te.id }}/editar" class="d-flex flex-wrap gap-1 mt-1">{{ csrf_field() }}
+                            <input class="form-control form-control-sm" style="width:6rem" type="number" name="minutes" min="1" max="1440" value="{{ te.minutes }}" aria-label="Minutos">
+                            <input class="form-control form-control-sm" style="width:9rem" type="date" name="work_date" value="{{ te.work_date }}" aria-label="Fecha">
+                            <input class="form-control form-control-sm" name="description" value="{{ te.description }}" aria-label="Descripción">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="billable" value="1" {{ te.billable ? 'checked' }} id="bill{{ te.id }}"><label class="form-check-label" for="bill{{ te.id }}">Facturable</label></div>
+                            <button class="btn btn-sm btn-primary">Guardar</button></form>
+                        <form method="post" action="/tiempos/{{ te.id }}/borrar" data-confirm="¿Eliminar este registro de tiempo?">{{ csrf_field() }}<button class="btn btn-sm btn-link text-danger p-0">Eliminar</button></form>
+                        </details>{% endif %}</td>
+                </tr>
+            {% else %}<tr><td colspan="6" class="text-muted">Sin tiempo registrado.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+        {% if can.time %}
+        <form method="post" action="/incidencias/{{ t.id }}/tiempos" class="row g-2 align-items-end border-top pt-2">
+            {{ csrf_field() }}
+            <div class="col-6 col-md-2"><label class="form-label small" for="tm_h">Horas</label><input class="form-control form-control-sm" type="number" id="tm_h" name="hours" min="0" max="24" value="0"></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="tm_m">Minutos</label><input class="form-control form-control-sm" type="number" id="tm_m" name="minutes" min="0" max="59" value="30"></div>
+            <div class="col-6 col-md-3"><label class="form-label small" for="tm_d">Día</label><input class="form-control form-control-sm" type="date" id="tm_d" name="work_date" value="{{ 'now'|date('Y-m-d', 'Europe/Madrid') }}"></div>
+            <div class="col-6 col-md-5"><label class="form-label small" for="tm_desc">Descripción</label><input class="form-control form-control-sm" id="tm_desc" name="description" maxlength="1000"></div>
+            {% if can('time.edit_any') %}<div class="col-6 col-md-4"><label class="form-label small" for="tm_user">Empleado</label><select class="form-select form-select-sm" id="tm_user" name="user_id">{% for u in catalog.staff %}<option value="{{ u.id }}" {{ u.id == current_user.id ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select></div>{% endif %}
+            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="billable" value="1" id="tm_bill" checked><label class="form-check-label small" for="tm_bill">Facturable</label></div></div>
+            <div class="col-12 col-md-3"><button class="btn btn-sm btn-outline-primary w-100">Añadir tiempo</button></div>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="tab-pane fade" id="tab-rel" role="tabpanel">
+        <ul class="list-group mb-3">
+        {% for r in relations %}
+            <li class="list-group-item d-flex justify-content-between align-items-center small">
+                <span>{{ r.dir == 'out' ? relation_labels[r.relation_type] : relation_labels_in[r.relation_type] }} <a href="/incidencias/{{ r.other_id }}" class="ticket-number">{{ r.ticket_number }}</a> {{ r.subject }} {{ m.status(r.status, r.status_color) }}</span>
+                {% if can.edit and r.dir == 'out' %}<form method="post" action="/incidencias/{{ t.id }}/relaciones/{{ r.id }}/quitar">{{ csrf_field() }}<button class="btn btn-sm btn-link text-danger" aria-label="Quitar relación"><i class="bi bi-x-lg"></i></button></form>{% endif %}
+            </li>
+        {% else %}<li class="list-group-item text-muted small">Sin relaciones.</li>{% endfor %}
+        </ul>
+        {% if can.edit %}
+        <form method="post" action="/incidencias/{{ t.id }}/relaciones" class="d-flex flex-wrap gap-2">
+            {{ csrf_field() }}
+            <select class="form-select form-select-sm w-auto" name="relation_type" aria-label="Tipo de relación">{% for k, v in relation_labels %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+            <input class="form-control form-control-sm w-auto" name="related" placeholder="INC-2026-000123" required aria-label="Número de incidencia">
+            <button class="btn btn-sm btn-outline-primary">Relacionar</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="tab-pane fade" id="tab-det" role="tabpanel">
+        {% if t.client_id %}
+        <dl class="row small">
+            <dt class="col-sm-3">Cliente</dt><dd class="col-sm-9">{{ t.legal_name }} ({{ t.client_code }}){% if t.client_phone %} · {{ t.client_phone }}{% endif %}{% if t.client_email %} · {{ t.client_email }}{% endif %}</dd>
+            <dt class="col-sm-3">Contacto</dt><dd class="col-sm-9">{{ t.contact_name|trim ?: '—' }}{% if t.contact_title %} ({{ t.contact_title }}){% endif %}{% for ci in contact_identities %} · {{ ci.value }}{% endfor %}</dd>
+            {% if t.client_notes %}<dt class="col-sm-3">Notas del cliente</dt><dd class="col-sm-9 text-pre">{{ t.client_notes }}</dd>{% endif %}
+        </dl>
+        {% endif %}
+        {% if t.internal_summary %}<div class="internal-banner mb-2">Observaciones internas</div><p class="small text-pre">{{ t.internal_summary }}</p>{% endif %}
+        {% if can.edit %}
+        <form method="post" action="/incidencias/{{ t.id }}/editar" class="border-top pt-3">
+            {{ csrf_field() }}<input type="hidden" name="lock_version" value="{{ t.lock_version }}">
+            <div class="mb-2"><label class="form-label" for="e_subject">Asunto</label><input class="form-control form-control-sm" id="e_subject" name="subject" value="{{ t.subject }}" maxlength="255" required></div>
+            <div class="mb-2"><label class="form-label" for="e_desc">Descripción</label><textarea class="form-control form-control-sm" id="e_desc" name="description" rows="4">{{ t.description }}</textarea></div>
+            <div class="row g-2">
+                <div class="col-md-4"><label class="form-label" for="e_cat">Categoría</label><select class="form-select form-select-sm" id="e_cat" name="category_id"><option value="">Sin categoría</option>{% for c in catalog.categories %}<option value="{{ c.id }}" {{ t.category_id == c.id ? 'selected' }}>{{ c.parent ? c.parent ~ ' › ' }}{{ c.name }}</option>{% endfor %}</select></div>
+                <div class="col-md-4"><label class="form-label" for="e_team">Equipo</label><select class="form-select form-select-sm" id="e_team" name="team_id"><option value="">Sin equipo</option>{% for tm in catalog.teams %}<option value="{{ tm.id }}" {{ t.team_id == tm.id ? 'selected' }}>{{ tm.name }}</option>{% endfor %}</select></div>
+                <div class="col-md-4"><label class="form-label" for="e_due">Fecha límite</label><input class="form-control form-control-sm" type="datetime-local" id="e_due" name="due_at" value="{{ t.due_at|input_date(true) }}"></div>
+            </div>
+            <div class="my-2"><label class="form-label" for="e_int">Observaciones internas</label><textarea class="form-control form-control-sm" id="e_int" name="internal_summary" rows="2">{{ t.internal_summary }}</textarea></div>
+            <button class="btn btn-sm btn-primary">Guardar cambios</button>
+        </form>
+        {% endif %}
+        {% if t.identification_status == 'identified' and can.edit %}
+        <details class="mt-3 small"><summary>Cambiar cliente o contacto</summary>
+        <form class="row g-2 mt-1" method="post" action="/incidencias/{{ t.id }}/identificar">{{ csrf_field() }}
+            <div class="col-md-4"><select class="form-select form-select-sm" name="client_id" data-client-select="#chg_contact" aria-label="Cliente">{% for c in catalog.clients %}<option value="{{ c.id }}" {{ c.id == t.client_id ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
+            <div class="col-md-4"><select class="form-select form-select-sm" id="chg_contact" name="contact_id" data-selected="{{ t.contact_id }}" aria-label="Contacto"><option value="">Sin contacto</option></select></div>
+            <div class="col-md-4"><button class="btn btn-sm btn-outline-primary">Cambiar</button></div>
+        </form></details>
+        {% endif %}
+        {% if can.delete %}
+        <details class="mt-4 small"><summary class="text-danger">Eliminar incidencia</summary>
+            <form method="post" action="/incidencias/{{ t.id }}/eliminar" class="mt-2" data-confirm="La incidencia dejará de verse en listados e informes. El historial se conserva. ¿Continuar?">{{ csrf_field() }}
+                <input class="form-control form-control-sm mb-2" name="reason" required minlength="5" placeholder="Motivo (duplicada, creada por error…)" aria-label="Motivo">
+                <button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
+        </details>
+        {% endif %}
+    </div>
+    </div>
+</div>
+
+<div class="col-xl-4">
+    {% if can.status and transitions %}
+    <div class="card mb-3"><div class="card-header">Estado</div><div class="card-body">
+        <form method="post" action="/incidencias/{{ t.id }}/estado">
+            {{ csrf_field() }}
+            <select class="form-select form-select-sm mb-2" name="status_id" aria-label="Nuevo estado">{% for st in transitions %}<option value="{{ st.id }}">{{ st.name }}</option>{% endfor %}</select>
+            <textarea class="form-control form-control-sm mb-2" name="comment" rows="2" placeholder="Comentario interno (opcional)" aria-label="Comentario"></textarea>
+            {% if customer_email %}<div class="form-check small mb-2"><input class="form-check-input" type="checkbox" name="notify_customer" value="1" id="nc"><label class="form-check-label" for="nc">Si pasa a resuelta, avisar al cliente por correo</label></div>{% endif %}
+            <button class="btn btn-sm btn-primary w-100">Cambiar estado</button>
+        </form>
+    </div></div>
+    {% endif %}
+
+    {% if can.priority %}
+    <div class="card mb-3"><div class="card-header">Prioridad</div><div class="card-body">
+        <form method="post" action="/incidencias/{{ t.id }}/prioridad" class="d-flex gap-2">{{ csrf_field() }}
+            <select class="form-select form-select-sm" name="priority_id" aria-label="Prioridad">{% for p in catalog.priorities %}<option value="{{ p.id }}" {{ p.id == t.priority_id ? 'selected' }}>{{ p.name }}</option>{% endfor %}</select>
+            <button class="btn btn-sm btn-outline-primary">Aplicar</button></form>
+    </div></div>
+    {% endif %}
+
+    {% if can.assign %}
+    <div class="card mb-3"><div class="card-header">Asignación</div><div class="card-body">
+        <form method="post" action="/incidencias/{{ t.id }}/asignacion">{{ csrf_field() }}
+            <label class="form-label small" for="a_owner">Responsable</label>
+            <select class="form-select form-select-sm mb-2" id="a_owner" name="owner_user_id"><option value="">Sin asignar</option>{% for u in catalog.staff %}<option value="{{ u.id }}" {{ u.id == t.owner_user_id ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select>
+            <label class="form-label small" for="a_col">Colaboradores (incidencia compartida)</label>
+            {% set collab_ids = participants|filter(p => p.role == 'collaborator')|map(p => p.user_id) %}
+            <select class="form-select form-select-sm mb-2" id="a_col" name="collaborators[]" multiple size="5">{% for u in catalog.staff %}<option value="{{ u.id }}" {{ u.id in collab_ids ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select>
+            <label class="form-label small" for="a_team">Equipo</label>
+            <select class="form-select form-select-sm mb-2" id="a_team" name="team_id"><option value="">Sin equipo</option>{% for tm in catalog.teams %}<option value="{{ tm.id }}" {{ tm.id == t.team_id ? 'selected' }}>{{ tm.name }}</option>{% endfor %}</select>
+            <button class="btn btn-sm btn-primary w-100">Guardar asignación</button>
+        </form>
+    </div></div>
+    {% endif %}
+
+    {% if can.edit and catalog.tags %}
+    <div class="card mb-3"><div class="card-header">Etiquetas</div><div class="card-body">
+        <form method="post" action="/incidencias/{{ t.id }}/etiquetas">{{ csrf_field() }}
+            {% set tag_ids = tags|map(x => x.id) %}
+            <select class="form-select form-select-sm mb-2" name="tags[]" multiple size="4" aria-label="Etiquetas">{% for tg in catalog.tags %}<option value="{{ tg.id }}" {{ tg.id in tag_ids ? 'selected' }}>{{ tg.name }}</option>{% endfor %}</select>
+            <button class="btn btn-sm btn-outline-primary w-100">Guardar etiquetas</button>
+        </form>
+    </div></div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

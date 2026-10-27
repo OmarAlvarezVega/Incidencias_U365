@@ -1,0 +1,16 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Mis tiempos{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Mis tiempos</h1><div class="subtitle">Semana {{ week_label }} · total {{ total|minutos }}</div></div>
+<div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="/mis-tiempos?semana={{ prev }}">← Anterior</a><a class="btn btn-outline-secondary" href="/mis-tiempos">Esta semana</a><a class="btn btn-outline-secondary" href="/mis-tiempos?semana={{ next }}">Siguiente →</a></div></div>
+<div class="row g-2 mb-3">
+{% for d in days %}<div class="col"><div class="kpi text-center"><div class="label">{{ d.dow }} {{ d.label }}</div><div class="value fs-5">{{ d.minutes ? d.minutes|minutos : '—' }}</div></div></div>{% endfor %}
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-sm">
+<thead><tr><th>Día</th><th>Incidencia</th><th>Cliente</th><th>Tiempo</th><th>Origen</th><th>Descripción</th></tr></thead>
+<tbody>
+{% for r in rows %}<tr><td>{{ r.work_date|date('d/m/Y') }}</td><td><a href="/incidencias/{{ r.ticket_id }}" class="ticket-number">{{ r.ticket_number }}</a> {{ r.subject }}</td><td>{{ r.client }}</td>
+<td>{{ r.minutes ? r.minutes|minutos : 'en marcha' }}</td><td>{{ r.source == 'timer' ? 'Temporizador' : 'Manual' }}</td><td class="small">{{ r.description }}</td></tr>
+{% else %}<tr><td colspan="6" class="empty-state"><i class="bi bi-stopwatch"></i>Sin tiempo registrado esta semana.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}Incidencias{% endblock %}
+{% macro sortlink(label, key, sort, dir) %}
+<a class="sort-link" href="{{ query({orden: key, dir: (sort == key and dir == 'desc') ? 'asc' : 'desc', page: null}) }}">{{ label }}{% if sort == key %} <i class="bi bi-caret-{{ dir == 'asc' ? 'up' : 'down' }}-fill"></i>{% endif %}</a>
+{% endmacro %}
+{% block content %}
+{% import _self as s %}
+<div class="page-header">
+    <div><h1>{{ views[f.vista] }}</h1><div class="subtitle">{{ total|num }} incidencia{{ total == 1 ? '' : 's' }}</div></div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if can('tickets.export') %}
+        <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-secondary" href="{{ query({page: null, formato: 'csv'})|replace({'/incidencias?': '/incidencias/exportar?'}) }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+            <a class="btn btn-outline-secondary" href="{{ query({page: null, formato: 'xlsx'})|replace({'/incidencias?': '/incidencias/exportar?'}) }}"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+        </div>
+        {% endif %}
+        {% if can('tickets.create') %}<a class="btn btn-primary btn-sm" href="/incidencias/nueva"><i class="bi bi-plus-lg"></i> Nueva</a>{% endif %}
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3 small flex-nowrap overflow-auto">
+{% for key, label in views %}
+    <li class="nav-item"><a class="nav-link text-nowrap {{ f.vista == key ? 'active' }}" href="{{ query({vista: key, page: null}) }}">{{ label }}</a></li>
+{% endfor %}
+</ul>
+
+<form class="card card-body mb-3 py-2" method="get" action="/incidencias">
+    <input type="hidden" name="vista" value="{{ f.vista }}">
+    <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-3"><label class="form-label small mb-0" for="fq">Texto</label><input class="form-control form-control-sm" id="fq" name="q" value="{{ f.q }}" placeholder="Número, asunto, cliente, correo"></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="festado">Estado</label>
+            <select class="form-select form-select-sm" id="festado" name="estado"><option value="">Todos</option>
+            {% for st in catalog.statuses %}<option value="{{ st.code }}" {{ f.estado == st.code ? 'selected' }}>{{ st.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fprio">Prioridad</label>
+            <select class="form-select form-select-sm" id="fprio" name="prioridad"><option value="">Todas</option>
+            {% for p in catalog.priorities %}<option value="{{ p.id }}" {{ f.prioridad == p.id ? 'selected' }}>{{ p.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fresp">Responsable</label>
+            <select class="form-select form-select-sm" id="fresp" name="responsable"><option value="">Cualquiera</option><option value="ninguno" {{ f.responsable == 'ninguno' ? 'selected' }}>Sin asignar</option>
+            {% for u in catalog.staff %}<option value="{{ u.id }}" {{ f.responsable == u.id ~ '' ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fcli">Cliente</label>
+            <select class="form-select form-select-sm" id="fcli" name="cliente"><option value="">Todos</option>
+            {% for c in catalog.clients %}<option value="{{ c.id }}" {{ f.cliente == c.id ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-1 d-grid"><button class="btn btn-sm btn-primary">Filtrar</button></div>
+    </div>
+    <details class="mt-2 small" {{ f.categoria or f.equipo or f.canal or f.etiqueta or f.desde or f.hasta ? 'open' }}>
+        <summary class="text-muted">Más filtros</summary>
+        <div class="row g-2 mt-1">
+            <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fcat">Categoría</label>
+                <select class="form-select form-select-sm" id="fcat" name="categoria"><option value="">Todas</option>
+                {% for c in catalog.categories %}<option value="{{ c.id }}" {{ f.categoria == c.id ? 'selected' }}>{{ c.parent ? c.parent ~ ' › ' }}{{ c.name }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-0" for="feq">Equipo</label>
+                <select class="form-select form-select-sm" id="feq" name="equipo"><option value="">Todos</option>
+                {% for t in catalog.teams %}<option value="{{ t.id }}" {{ f.equipo == t.id ? 'selected' }}>{{ t.name }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fcan">Canal</label>
+                <select class="form-select form-select-sm" id="fcan" name="canal"><option value="">Todos</option>
+                {% for c in catalog.channels %}<option value="{{ c.code }}" {{ f.canal == c.code ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fet">Etiqueta</label>
+                <select class="form-select form-select-sm" id="fet" name="etiqueta"><option value="">Todas</option>
+                {% for t in catalog.tags %}<option value="{{ t.id }}" {{ f.etiqueta == t.id ? 'selected' }}>{{ t.name }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fdesde">Creada desde</label><input class="form-control form-control-sm" type="date" id="fdesde" name="desde" value="{{ f.desde }}"></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-0" for="fhasta">Creada hasta</label><input class="form-control form-control-sm" type="date" id="fhasta" name="hasta" value="{{ f.hasta }}"></div>
+        </div>
+    </details>
+</form>
+
+<form method="post" action="/incidencias/lote" id="bulkForm">
+{{ csrf_field() }}
+<div class="card">
+    <div class="d-none border-bottom p-2 d-flex flex-wrap gap-2 align-items-center bg-light" data-bulk-bar>
+        <strong class="small"><span data-bulk-count>0</span> seleccionadas</strong>
+        {% if can('tickets.assign') %}
+        <select class="form-select form-select-sm w-auto" name="owner_user_id" aria-label="Nuevo responsable"><option value="">Sin responsable</option>{% for u in catalog.staff %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select>
+        <button class="btn btn-sm btn-outline-primary" name="accion" value="asignar">Asignar</button>
+        {% endif %}
+        {% if can('tickets.change_status') %}
+        <select class="form-select form-select-sm w-auto" name="status_id" aria-label="Nuevo estado">{% for st in catalog.statuses %}<option value="{{ st.id }}">{{ st.name }}</option>{% endfor %}</select>
+        <button class="btn btn-sm btn-outline-primary" name="accion" value="estado">Cambiar estado</button>
+        {% endif %}
+        {% if can('tickets.change_priority') %}
+        <select class="form-select form-select-sm w-auto" name="priority_id" aria-label="Nueva prioridad">{% for p in catalog.priorities %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+        <button class="btn btn-sm btn-outline-primary" name="accion" value="prioridad">Cambiar prioridad</button>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+    <table class="table table-hover table-tickets align-middle">
+        <thead><tr>
+            <th style="width:1%"><input class="form-check-input" type="checkbox" data-check-all="[data-row-check]" aria-label="Seleccionar todas"></th>
+            <th>{{ s.sortlink('Número', 'numero', sort, dir) }}</th>
+            <th>Asunto / cliente</th>
+            <th>{{ s.sortlink('Estado', 'estado', sort, dir) }}</th>
+            <th>{{ s.sortlink('Prioridad', 'prioridad', sort, dir) }}</th>
+            <th>Responsable</th>
+            <th>{{ s.sortlink('Vence', 'vencimiento', sort, dir) }}</th>
+            <th>{{ s.sortlink('Actividad', 'actividad', sort, dir) }}</th>
+        </tr></thead>
+        <tbody>
+        {% for t in rows %}
+            <tr>
+                <td><input class="form-check-input" type="checkbox" name="ids[]" value="{{ t.id }}" data-row-check aria-label="Seleccionar {{ t.ticket_number }}"></td>
+                <td><span class="ticket-number">{{ t.ticket_number }}</span>
+                    <div class="small text-muted">{% if t.channel_code == 'email' %}<i class="bi bi-envelope" title="Correo"></i>{% elseif t.channel_code == 'whatsapp' %}<i class="bi bi-whatsapp" title="WhatsApp"></i>{% else %}<i class="bi bi-pencil" title="Manual"></i>{% endif %} {{ t.created_at|dia }}</div></td>
+                <td class="min-w-0"><a class="row-link" href="/incidencias/{{ t.id }}">{{ t.subject }}</a>
+                    <div class="small text-muted">{% if t.identification_status == 'pending' %}<span class="text-warning-emphasis"><i class="bi bi-question-circle"></i> Sin identificar: {{ t.requester_email ?: t.requester_phone }}</span>{% else %}{{ t.client }}{% if t.contact|trim %} · {{ t.contact }}{% endif %}{% endif %}{% if t.category %} · {{ t.category }}{% endif %}</div></td>
+                <td>{{ m.status(t.status, t.status_color) }}</td>
+                <td>{{ m.priority(t.priority, t.priority_color) }}</td>
+                <td class="small">{% if t.owner %}{{ t.owner }}{% if t.assignment_mode == 'shared' %} <i class="bi bi-people text-muted" title="Compartida"></i>{% endif %}{% else %}<span class="text-muted">Sin asignar</span>{% endif %}{% if t.team %}<div class="text-muted">{{ t.team }}</div>{% endif %}</td>
+                <td class="small">{% if t.phase in ['new','open','pending'] %}{{ m.sla(t) }}{% if t.due_at %}<div class="{{ t.due_at < now ? 'overdue' }}"><i class="bi bi-calendar-event"></i> {{ t.due_at|fecha }}</div>{% endif %}{% endif %}</td>
+                <td class="small text-muted text-nowrap">{{ t.last_activity_at|hace }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="8" class="empty-state"><i class="bi bi-inbox"></i>No hay incidencias con estos filtros.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+</form>
+{{ m.pagination(total, page, per) }}
+{% endblock %}

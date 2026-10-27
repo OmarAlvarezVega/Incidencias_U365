@@ -1,0 +1,47 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Plantillas{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Plantillas de mensajes</h1><div class="subtitle">Textos que reciben clientes y empleados. Usa las variables de la lista; el resto del texto se envía tal cual.</div></div></div>
+<div class="row g-3">
+<div class="col-lg-3">
+    <div class="list-group small">
+    {% for t in catalog %}
+        <a class="list-group-item list-group-item-action {{ t.key == current.key ? 'active' }}" href="/admin/plantillas?plantilla={{ t.key|url_encode }}">
+            <i class="bi bi-{{ t.channel == 'email' ? 'envelope' : 'whatsapp' }}"></i> {{ t.name }}{% if t.customized %} <span class="badge text-bg-light">personalizada</span>{% endif %}
+        </a>
+    {% endfor %}
+    </div>
+</div>
+<div class="col-lg-6">
+    <form method="post" action="/admin/plantillas" class="card">
+        {{ csrf_field() }}<input type="hidden" name="key" value="{{ current.key }}">
+        <div class="card-header">{{ current.name }} <span class="text-muted small">({{ current.channel == 'email' ? 'correo' : 'WhatsApp' }})</span></div>
+        <div class="card-body">
+            {% if current.channel == 'email' %}
+            <div class="mb-3"><label class="form-label required" for="tsubject">Asunto</label>
+                <input class="form-control {{ error('subject') ? 'is-invalid' }}" id="tsubject" name="subject" maxlength="250" value="{{ old('subject', current.subject) }}">
+                {% if error('subject') %}<div class="invalid-feedback">{{ error('subject') }}</div>{% endif %}</div>
+            {% endif %}
+            <div class="mb-2"><label class="form-label required" for="tbody">Texto</label>
+                <textarea class="form-control font-monospace small {{ error('body') ? 'is-invalid' }}" id="tbody" name="body" rows="14">{{ old('body', current.body) }}</textarea>
+                {% if error('body') %}<div class="invalid-feedback">{{ error('body') }}</div>{% endif %}
+                <div class="form-text">{% if current.channel == 'email' %}Los correos se envían en texto plano y en HTML sencillo generado a partir de este texto.{% else %}WhatsApp admite *negrita* y _cursiva_. Máximo 4096 caracteres por mensaje.{% endif %}</div></div>
+        </div>
+        <div class="card-footer d-flex gap-2">
+            <button class="btn btn-primary btn-sm">Guardar</button>
+            {% if current.customized %}<button class="btn btn-outline-secondary btn-sm" name="restore" value="1" formnovalidate data-confirm="Se perderá el texto personalizado.">Restaurar la de fábrica</button>{% endif %}
+        </div>
+    </form>
+</div>
+<div class="col-lg-3">
+    <div class="card mb-3"><div class="card-header">Variables</div><div class="card-body small">
+        {% for k, v in variables %}<div class="mb-1"><button type="button" class="btn btn-link btn-sm p-0 font-monospace" data-copy-text="{{ '{{ ' ~ k ~ ' }}' }}" title="Copiar">{{ '{{ ' ~ k ~ ' }}' }}</button><div class="text-muted">{{ v }}</div></div>{% endfor %}
+    </div></div>
+    <div class="card"><div class="card-header">Vista previa (datos de ejemplo)</div><div class="card-body small">
+        {% if current.channel == 'email' %}<div class="fw-semibold mb-2">{{ preview.subject }}</div>{% endif %}
+        <div>{{ preview.body|nl2br_safe }}</div>
+        <div class="form-text">Refleja lo guardado, no lo que estás escribiendo.</div>
+    </div></div>
+</div>
+</div>
+{% endblock %}

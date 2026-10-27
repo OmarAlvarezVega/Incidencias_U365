@@ -1,0 +1,11 @@
+# Plan B, solo si IONOS no permite apuntar el subdominio a public/:
+# todo lo que no sea public/ queda bloqueado y las peticiones se reenvían a public/.
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule ^(app|bin|config|database|storage|templates|tests|vendor|docs)(/|$) - [F,L]
+    RewriteRule ^(composer\.(json|lock)|README\.md|phpunit\.xml(\.dist)?)$ - [F,L]
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

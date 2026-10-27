@@ -199,8 +199,3 @@ INSERT INTO application_settings (setting_key, value_json, updated_at) VALUES
  ('whatsapp.enabled',           'false',           @now),
  ('whatsapp.ambiguity_policy',  '"ask_customer"',  @now),
  ('retention.closed_ticket_years','null',          @now);
-
-INSERT INTO schema_migrations (version, description, checksum, applied_at) VALUES
- ('0001', 'Esquema inicial',      REPEAT('0',64), @now),
- ('0002', 'Catálogos iniciales',  REPEAT('0',64), @now);
--- El instalador real sustituirá el checksum por el SHA-256 de cada fichero.

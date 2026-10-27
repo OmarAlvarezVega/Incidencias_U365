@@ -1,0 +1,47 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ title }}</h1><div class="subtitle">Del {{ f.desde|date('d/m/Y') }} al {{ f.hasta|date('d/m/Y') }} · {{ result.rows|length|num }} fila{{ result.rows|length == 1 ? '' : 's' }}</div></div>
+    <div class="d-flex gap-2 flex-wrap">
+        <select class="form-select form-select-sm w-auto" aria-label="Cambiar de informe" data-nav-select>
+            {% for c, n in reports %}<option value="/informes/{{ c }}?{{ {desde: f.desde, hasta: f.hasta}|url_encode }}" {{ c == code ? 'selected' }}>{{ n }}</option>{% endfor %}
+        </select>
+        {% if can('tickets.export') %}
+        <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-secondary" href="{{ query({formato: 'csv'}) }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+            <a class="btn btn-outline-secondary" href="{{ query({formato: 'xlsx'}) }}"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<form class="card card-body mb-3 py-2" method="get" action="/informes/{{ code }}">
+    <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="rdesde">Desde</label><input class="form-control form-control-sm" type="date" id="rdesde" name="desde" value="{{ f.desde }}"></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="rhasta">Hasta</label><input class="form-control form-control-sm" type="date" id="rhasta" name="hasta" value="{{ f.hasta }}"></div>
+        <div class="col-6 col-md-3"><label class="form-label small mb-0" for="rcli">Cliente</label>
+            <select class="form-select form-select-sm" id="rcli" name="cliente"><option value="">Todos</option>{% for c in clients %}<option value="{{ c.id }}" {{ f.cliente == c.id ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="req">Equipo</label>
+            <select class="form-select form-select-sm" id="req" name="equipo"><option value="">Todos</option>{% for t in teams %}<option value="{{ t.id }}" {{ f.equipo == t.id ? 'selected' }}>{{ t.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="remp">Empleado</label>
+            <select class="form-select form-select-sm" id="remp" name="empleado"><option value="">Todos</option>{% for s in staff %}<option value="{{ s.id }}" {{ f.empleado == s.id ? 'selected' }}>{{ s.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-1 d-grid"><button class="btn btn-sm btn-primary">Ver</button></div>
+    </div>
+    <div class="small text-muted mt-1">Las fechas filtran por creación de la incidencia, salvo en tiempos (día de trabajo). Máximo dos años por consulta; en pantalla se muestran 500 filas, la exportación las incluye todas.</div>
+</form>
+<div class="card"><div class="table-responsive">
+<table class="table table-sm table-hover align-middle mb-0 small">
+    <thead><tr>{% for h in result.headers %}<th class="text-nowrap">{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in result.rows|slice(0, 500) %}
+        <tr>{% for v in r %}<td class="{{ v matches '/^-?[0-9]+$/' ? 'text-end' }}">{{ v }}</td>{% endfor %}</tr>
+    {% else %}
+        <tr><td colspan="{{ result.headers|length }}" class="empty-state"><i class="bi bi-graph-down"></i>No hay datos para este periodo y filtros.</td></tr>
+    {% endfor %}
+    </tbody>
+    {% if result.totals and result.rows is not empty %}
+    <tfoot><tr class="fw-semibold">{% for v in result.totals %}<td>{{ v }}</td>{% endfor %}</tr></tfoot>
+    {% endif %}
+</table>
+</div></div>
+{% endblock %}

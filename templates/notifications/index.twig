@@ -1,0 +1,14 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}Notificaciones{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Notificaciones</h1></div>
+<form method="post" action="/notificaciones/leer-todas">{{ csrf_field() }}<button class="btn btn-outline-secondary btn-sm">Marcar todas como leídas</button></form></div>
+<div class="card"><ul class="list-group list-group-flush">
+{% for n in items %}
+<li class="list-group-item {{ n.read_at ? '' : 'bg-light' }}"><a class="fw-semibold" href="/notificaciones/{{ n.id }}/abrir">{{ n.title }}</a>
+<div class="small">{{ n.body }}</div><div class="small text-muted">{{ n.created_at|fecha }}</div></li>
+{% else %}<li class="list-group-item empty-state"><i class="bi bi-bell-slash"></i>No tienes notificaciones.</li>{% endfor %}
+</ul></div>
+{{ m.pagination(total, page, per) }}
+{% endblock %}

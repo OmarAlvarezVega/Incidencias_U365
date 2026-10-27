@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}Acceso{% endblock %} · UNIVERS365</title>
+    <link rel="icon" href="{{ asset('img/favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+</head>
+<body>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="logo">U3</div>
+        {% for f in flashes %}
+            <div class="alert alert-{{ f.type == 'danger' ? 'danger' : (f.type == 'warning' ? 'warning' : (f.type == 'info' ? 'info' : 'success')) }} py-2 small">{{ f.message }}</div>
+        {% endfor %}
+        {% block content %}{% endblock %}
+        <p class="text-muted small mt-4 mb-0">UNIVERS365 TECHNOLOGY · Gestión de incidencias</p>
+    </div>
+</div>
+</body>
+</html>
