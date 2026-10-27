@@ -48,6 +48,9 @@ final class Export
         if (!class_exists(\ZipArchive::class)) {
             throw new \RuntimeException('La exportación a Excel necesita la extensión zip de PHP. Usa CSV.');
         }
+        if (!is_dir($tmpDir)) {
+            @mkdir($tmpDir, 0750, true);
+        }
         $tmp = tempnam($tmpDir, 'xlsx');
         $zip = new \ZipArchive();
         $zip->open($tmp, \ZipArchive::OVERWRITE);

@@ -62,3 +62,48 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: none
       - run: php -l tools/diagnostico.php
+
+  pruebas:
+    name: PHPUnit (PHP ${{ matrix.php }}, MariaDB ${{ matrix.mariadb }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '8.2', mariadb: '10.6' }
+          - { php: '8.3', mariadb: '10.11' }
+          - { php: '8.4', mariadb: '11.4' }
+    services:
+      mariadb:
+        image: mariadb:${{ matrix.mariadb }}
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: u365_test
+          MARIADB_USER: t
+          MARIADB_PASSWORD: t
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, mbstring, sodium, fileinfo, zip, zlib, curl, intl
+          coverage: none
+      - name: Base de datos para la prueba de restauración
+        run: |
+          mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE DATABASE u365_test_restore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL ON u365_test_restore.* TO 't'@'%';"
+      - name: Dependencias
+        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Sintaxis de todo el PHP
+        run: find app bin public tests -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: PHPUnit
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: '3306'
+          TEST_DB_NAME: u365_test
+          TEST_DB_USER: t
+          TEST_DB_PASS: t
+        run: vendor/bin/phpunit

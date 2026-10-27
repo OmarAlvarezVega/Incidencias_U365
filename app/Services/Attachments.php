@@ -158,7 +158,12 @@ final class Attachments
      */
     public function storeContent(int $ticketId, string $content, string $originalName, ?int $messageId, string $visibility = 'public', ?int $maxBytes = null): int
     {
-        $tmp = tempnam($this->app->storagePath('tmp'), 'att');
+        $tmpDir = $this->app->storagePath('tmp');
+        if (!is_dir($tmpDir) && !mkdir($tmpDir, 0750, true) && !is_dir($tmpDir)) {
+            throw new \RuntimeException('No se pudo crear la carpeta temporal.');
+        }
+        // Dentro de storage/ (nunca en /tmp compartido del alojamiento)
+        $tmp = tempnam($tmpDir, 'att');
         if ($tmp === false) {
             throw new \RuntimeException('No se pudo crear un archivo temporal.');
         }
