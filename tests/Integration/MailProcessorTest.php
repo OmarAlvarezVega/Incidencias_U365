@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use App\Core\Clock;
-use App\Services\ClientService;
 use App\Services\Mail\MailProcessor;
 use App\Services\TicketService;
 use PHPUnit\Framework\TestCase;
@@ -30,13 +29,7 @@ final class MailProcessorTest extends TestCase
             ]);
         }
         self::$acc = $db->one('SELECT * FROM email_accounts WHERE id = ?', [$id]);
-        $clients = TestEnv::app()->make(ClientService::class);
-        $cid = $db->value("SELECT id FROM clients WHERE legal_name = 'Cliente Correo Pruebas SL'");
-        if ($cid === null) {
-            $cid = $clients->createClient(['client_type' => 'company', 'legal_name' => 'Cliente Correo Pruebas SL'], TestEnv::adminId());
-            $clients->addDomain((int)$cid, 'cliente-pruebas.es');
-        }
-        self::$clientId = (int)$cid;
+        self::$clientId = TestEnv::domainClient();
     }
 
     private function ingest(string $fixture, array $vars = []): array

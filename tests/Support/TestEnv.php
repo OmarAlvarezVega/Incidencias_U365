@@ -131,6 +131,20 @@ final class TestEnv
         );
     }
 
+    /** Cliente de pruebas con el dominio de correo cliente-pruebas.es (compartido por varias pruebas). */
+    public static function domainClient(): int
+    {
+        $db = self::db();
+        $id = $db->value("SELECT client_id FROM client_email_domains WHERE domain = 'cliente-pruebas.es'");
+        if ($id !== null) {
+            return (int)$id;
+        }
+        $clients = self::app()->make(\App\Services\ClientService::class);
+        $id = $clients->createClient(['client_type' => 'company', 'legal_name' => 'Cliente Correo Pruebas SL'], self::adminId());
+        $clients->addDomain($id, 'cliente-pruebas.es');
+        return $id;
+    }
+
     public static function adminId(): int
     {
         return (int)self::db()->value('SELECT id FROM users WHERE email_normalized = ?', [self::ADMIN_EMAIL]);

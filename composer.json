@@ -5,15 +5,18 @@
     "license": "proprietary",
     "require": {
         "php": ">=8.2",
-        "ext-pdo": "*",
-        "ext-pdo_mysql": "*",
-        "ext-mbstring": "*",
-        "ext-openssl": "*",
-        "ext-sodium": "*",
+        "ext-ctype": "*",
         "ext-fileinfo": "*",
         "ext-json": "*",
-        "twig/twig": "^3.14",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-sodium": "*",
+        "ext-zip": "*",
+        "ext-zlib": "*",
         "phpmailer/phpmailer": "^6.9",
+        "twig/twig": "^3.14",
         "zbateson/mail-mime-parser": "^3.0"
     },
     "require-dev": {
@@ -21,7 +24,6 @@
     },
     "suggest": {
         "ext-intl": "Formato de fechas y números es_ES",
-        "ext-zip": "Exportación XLSX y copias de adjuntos",
         "ext-curl": "Llamadas HTTP a Meta y Microsoft (hay alternativa con streams)"
     },
     "autoload": {
