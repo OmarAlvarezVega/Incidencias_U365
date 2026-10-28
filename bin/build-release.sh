@@ -26,6 +26,8 @@ git -C "$repo" archive --format=tar --prefix="$name/" HEAD | tar -x -C "$work"
 cd "$work/$name"
 
 composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader --classmap-authoritative
+# Si Composer no pudo descargar el paquete "dist" y clonó el repositorio, quita su historial
+find vendor -name .git -prune -exec rm -rf {} +
 
 # Fuera del paquete: pruebas, CI, herramientas de desarrollo y el diagnóstico
 # (este se sube a mano solo cuando se necesita y se borra después)
@@ -37,6 +39,10 @@ git -C "$repo" rev-parse HEAD > REVISION
 # Comprobaciones de seguridad del contenido
 if find . -path ./vendor -prune -o \( -name 'config.php' -path '*/config/*' -o -name '*.key' -o -name 'install.token' -o -name '.env*' \) -print | grep -q .; then
     echo "ERROR: el paquete contiene configuración o claves." >&2
+    exit 1
+fi
+if [[ -n "$(find . -name .git -print -quit)" ]]; then
+    echo "ERROR: el paquete contiene carpetas .git." >&2
     exit 1
 fi
 if [[ -n "$(find storage -mindepth 1 ! -name .gitkeep ! -name .htaccess -print -quit)" ]]; then
