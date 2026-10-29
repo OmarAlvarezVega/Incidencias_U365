@@ -21,12 +21,14 @@ DirectoryIndex index.php
 </IfModule>
 
 # Solo index.php puede ejecutarse como PHP en esta carpeta
-<FilesMatch "\.(php|phtml|phar|php[0-9])$">
-    Require all denied
-</FilesMatch>
-<Files "index.php">
-    Require all granted
-</Files>
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(php|phtml|phar|php[0-9])$">
+        Require all denied
+    </FilesMatch>
+    <Files "index.php">
+        Require all granted
+    </Files>
+</IfModule>
 
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"

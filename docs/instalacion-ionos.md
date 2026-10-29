@@ -60,8 +60,11 @@ incidencias/
 2. Panel de IONOS → Dominios → `incidencias.univers365.com` → **Destino**:
    apunta a la carpeta `incidencias/public`. **[Verificar]** que el panel
    permite elegir una subcarpeta; es lo habitual en IONOS.
-3. Plan B, solo si no se puede: apunta a `incidencias/`. El `.htaccess` de la
-   raíz bloquea `app/`, `config/`, `storage/`, etc. y reenvía todo a `public/`.
+3. Plan B, solo si no se puede: apunta a `incidencias/` y renombra
+   `htaccess-plan-b.txt` a `.htaccess` en esa carpeta. Bloquea `app/`,
+   `config/`, `storage/`, etc. y reenvía todo a `public/`. **Si el subdominio
+   apunta a `public/`, no lo hagas**: Apache también lee los `.htaccess` de
+   las carpetas superiores y daría error 500.
    Comprueba después que `https://incidencias.univers365.com/config/` y
    `/storage/` devuelven 403.
 4. Activa el certificado SSL del subdominio en el panel y fuerza HTTPS.

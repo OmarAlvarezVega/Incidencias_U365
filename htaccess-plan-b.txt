@@ -1,3 +1,6 @@
+# Solo si el subdominio NO puede apuntar a public/: renombrar a .htaccess en la raíz.
+# Si el subdominio ya apunta a public/ (lo normal en IONOS), NO subirlo: Apache también
+# lee los .htaccess de las carpetas superiores y este rompería la aplicación.
 # Plan B, solo si IONOS no permite apuntar el subdominio a public/:
 # todo lo que no sea public/ queda bloqueado y las peticiones se reenvían a public/.
 <IfModule mod_rewrite.c>
