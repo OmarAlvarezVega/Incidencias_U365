@@ -32,8 +32,11 @@ final class Session
         ini_set('session.use_only_cookies', '1');
         ini_set('session.use_trans_sid', '0');
         ini_set('session.cookie_httponly', '1');
-        ini_set('session.sid_length', '48');
-        ini_set('session.sid_bits_per_character', '6');
+        if (PHP_VERSION_ID < 80400) {
+            // Obsoletas en PHP 8.4 (IONOS usa 8.4): allí el identificador por defecto ya es suficiente
+            ini_set('session.sid_length', '48');
+            ini_set('session.sid_bits_per_character', '6');
+        }
         ini_set('session.gc_maxlifetime', (string)max(1800, $this->idleMinutes * 60));
         ini_set('session.gc_probability', '1');
         ini_set('session.gc_divisor', '100');
