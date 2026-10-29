@@ -1,6 +1,7 @@
 # UNIVERS365 Incidencias - raíz web (public/)
 
-Options -Indexes -MultiViews
+# Sin "Options": en IONOS compartido puede provocar un error 500. El listado de
+# carpetas no es posible igualmente: toda ruta que no sea un fichero va a index.php.
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>

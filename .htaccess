@@ -1,6 +1,5 @@
 # Plan B, solo si IONOS no permite apuntar el subdominio a public/:
 # todo lo que no sea public/ queda bloqueado y las peticiones se reenvían a public/.
-Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule (^|/)\. - [F,L]
