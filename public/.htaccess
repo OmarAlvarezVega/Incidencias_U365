@@ -1,7 +1,7 @@
 # UNIVERS365 Incidencias - raíz web (public/)
 
-# Sin "Options": en IONOS compartido puede provocar un error 500. El listado de
-# carpetas no es posible igualmente: toda ruta que no sea un fichero va a index.php.
+# En IONOS compartido no se permiten "Options" ni "Require" en .htaccess
+# (error 500 visto el 30/10/2026). Todo se hace con mod_rewrite y mod_headers.
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
@@ -15,26 +15,11 @@ DirectoryIndex index.php
     # Ficheros ocultos (.git, .env...) nunca
     RewriteRule (^|/)\. - [F,L]
 
+    # Solo index.php puede ejecutarse como PHP en esta carpeta
+    RewriteCond %{REQUEST_URI} \.(php|phtml|phar|php[0-9])$ [NC]
+    RewriteRule !^index\.php$ - [F,L]
+
     # Recursos estáticos existentes se sirven tal cual; el resto va al controlador
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L,QSA]
-</IfModule>
-
-# Solo index.php puede ejecutarse como PHP en esta carpeta
-<IfModule mod_authz_core.c>
-    <FilesMatch "\.(php|phtml|phar|php[0-9])$">
-        Require all denied
-    </FilesMatch>
-    <Files "index.php">
-        Require all granted
-    </Files>
-</IfModule>
-
-<IfModule mod_headers.c>
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set Referrer-Policy "same-origin"
-    Header always unset X-Powered-By
-    <FilesMatch "\.(css|js|woff2?|png|svg|ico)$">
-        Header set Cache-Control "public, max-age=2592000"
-    </FilesMatch>
 </IfModule>
