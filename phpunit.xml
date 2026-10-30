@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnWarning="true"
+         failOnRisky="true">
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+        <testsuite name="http">
+            <directory>tests/Http</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <!-- Base de datos de PRUEBAS: se vacía al empezar. Su nombre debe contener "test". -->
+        <env name="TEST_DB_HOST" value="127.0.0.1" force="false"/>
+        <env name="TEST_DB_PORT" value="3306" force="false"/>
+        <env name="TEST_DB_NAME" value="u365_test" force="false"/>
+        <env name="TEST_DB_USER" value="t" force="false"/>
+        <env name="TEST_DB_PASS" value="t" force="false"/>
+    </php>
+</phpunit>

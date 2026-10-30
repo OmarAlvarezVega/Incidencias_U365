@@ -1,0 +1,30 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Roles y permisos{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Roles y permisos</h1><div class="subtitle">Qué puede hacer cada rol. Las excepciones por persona se ponen en la ficha del empleado.</div></div></div>
+{% set labels = {tickets: 'Incidencias', time: 'Tiempos', clients: 'Clientes', employees: 'Empleados', reports: 'Informes', admin: 'Administración'} %}
+<ul class="nav nav-tabs mb-3">
+{% for r in roles %}<li class="nav-item"><a class="nav-link {{ r.id == selected ? 'active' }}" href="/admin/roles?rol={{ r.id }}">{{ r.name }} <span class="badge text-bg-light">{{ r.users }}</span></a></li>{% endfor %}
+</ul>
+{% for r in roles %}{% if r.id == selected %}
+<form method="post" action="/admin/roles/{{ r.id }}">
+{{ csrf_field() }}
+<div class="card"><div class="card-body">
+    {% if r.description %}<p class="text-muted small">{{ r.description }}</p>{% endif %}
+    {% if r.code == 'superadmin' %}<div class="alert alert-info small">El superadministrador siempre tiene todos los permisos. No se puede modificar para evitar que la empresa se quede sin acceso a la administración.</div>{% endif %}
+    {% set module = '' %}
+    <div class="row g-2">
+    {% for p in permissions %}
+        {% if p.module != module %}{% set module = p.module %}<div class="col-12 mt-3"><h2 class="h6 text-uppercase text-muted mb-1">{{ labels[module] ?? module }}</h2></div>{% endif %}
+        <div class="col-md-6"><div class="form-check">
+            <input class="form-check-input" type="checkbox" name="permissions[]" value="{{ p.id }}" id="p{{ p.id }}" {{ matrix[r.id][p.id] ?? false ? 'checked' }} {{ r.code == 'superadmin' ? 'disabled' }}>
+            <label class="form-check-label small" for="p{{ p.id }}">{{ p.description }} <code class="text-muted">{{ p.code }}</code></label>
+        </div></div>
+    {% endfor %}
+    </div>
+</div>
+{% if r.code != 'superadmin' %}<div class="card-footer d-flex gap-2 align-items-center"><button class="btn btn-primary btn-sm">Guardar permisos de «{{ r.name }}»</button><span class="small text-muted">Se aplican al momento a las {{ r.users }} personas con este rol.</span></div>{% endif %}
+</div>
+</form>
+{% endif %}{% endfor %}
+{% endblock %}

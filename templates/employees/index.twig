@@ -1,0 +1,40 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Empleados{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Empleados</h1><div class="subtitle">{{ rows|length }} empleado{{ rows|length == 1 ? '' : 's' }}</div></div>
+    {% if can('employees.manage') %}<a class="btn btn-primary btn-sm" href="/empleados/nuevo"><i class="bi bi-person-plus"></i> Nuevo empleado</a>{% endif %}
+</div>
+<form class="card card-body mb-3 py-2" method="get" action="/empleados">
+    <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-5"><label class="form-label small mb-0" for="eq">Buscar</label><input class="form-control form-control-sm" id="eq" name="q" value="{{ q }}" placeholder="Nombre, correo o usuario"></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-0" for="eestado">Estado</label>
+            <select class="form-select form-select-sm" id="eestado" name="estado" data-autosubmit>
+                {% for k, v in {active: 'Activos', blocked: 'Bloqueados', disabled: 'Desactivados', todos: 'Todos'} %}<option value="{{ k }}" {{ status == k or (k == 'todos' and status not in ['active','blocked','disabled']) ? 'selected' }}>{{ v }}</option>{% endfor %}
+            </select></div>
+        <div class="col-6 col-md-3"><label class="form-label small mb-0" for="eequipo">Equipo</label>
+            <select class="form-select form-select-sm" id="eequipo" name="equipo" data-autosubmit><option value="">Todos</option>{% for t in teams %}<option value="{{ t.id }}" {{ team == t.id ? 'selected' }}>{{ t.name }}</option>{% endfor %}</select></div>
+        <div class="col-12 col-md-2 d-grid"><button class="btn btn-sm btn-primary">Buscar</button></div>
+    </div>
+</form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Empleado</th><th>Rol</th><th>Equipos</th><th class="text-end">Abiertas</th><th>Último acceso</th></tr></thead>
+    <tbody>
+    {% for u in rows %}
+        <tr>
+            <td><a class="row-link" href="/empleados/{{ u.id }}">{{ u.first_name }} {{ u.last_name }}</a>
+                {% if u.status == 'blocked' %}<span class="badge text-bg-warning">Bloqueado</span>{% elseif u.status == 'disabled' %}<span class="badge text-bg-secondary">Desactivado</span>{% endif %}
+                <div class="small text-muted">{{ u.email }}{% if u.corporate_phone %} · {{ u.corporate_phone }}{% endif %}</div></td>
+            <td class="small">{{ u.role }}</td>
+            <td class="small">{{ u.teams ?: '—' }}</td>
+            <td class="text-end">{{ u.open_tickets }}</td>
+            <td class="small text-muted text-nowrap">{{ u.last_login_at ? u.last_login_at|hace : 'Nunca' }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="5" class="empty-state"><i class="bi bi-people"></i>No hay empleados con estos filtros.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div></div>
+{% endblock %}

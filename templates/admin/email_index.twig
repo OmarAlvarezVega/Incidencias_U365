@@ -1,0 +1,32 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Correo{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Buzones de correo</h1><div class="subtitle">Los correos que llegan a estos buzones se convierten en incidencias o se añaden a las existentes.</div></div>
+    <a class="btn btn-primary btn-sm" href="/admin/correo/nuevo"><i class="bi bi-plus-lg"></i> Añadir buzón</a>
+</div>
+{% if not cron_last %}
+<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> La lectura automática del correo todavía no se ha ejecutado nunca. Configura la tarea programada (cron) en IONOS según el manual, o usa «Procesar ahora» en cada buzón.</div>
+{% else %}
+<p class="small text-muted">Última lectura automática correcta: {{ cron_last|fecha }} ({{ cron_last|hace }}).</p>
+{% endif %}
+<div class="card"><div class="table-responsive"><table class="table align-middle mb-0">
+    <thead><tr><th>Buzón</th><th>Autenticación</th><th>Remitentes desconocidos</th><th class="text-end">Recibidos 7 días</th><th>Última lectura</th><th></th></tr></thead>
+    <tbody>
+    {% for a in rows %}
+    <tr>
+        <td><a class="row-link" href="/admin/correo/{{ a.id }}">{{ a.name }}</a> {% if a.is_default %}<span class="badge text-bg-primary">Predeterminado</span>{% endif %}
+            {% if not a.active %}<span class="badge text-bg-secondary">Inactivo</span>{% endif %}<div class="small text-muted">{{ a.address }}</div></td>
+        <td class="small">{{ a.auth_type == 'oauth2_microsoft' ? 'Microsoft 365 (OAuth2)' : 'Usuario y contraseña' }}</td>
+        <td class="small">{{ a.unknown_sender_policy == 'review' ? 'Cola de revisión' : 'Incidencia sin identificar' }}{% if a.review > 0 %} · <a href="/revision">{{ a.review }} pendientes</a>{% endif %}</td>
+        <td class="text-end">{{ a.last_7d }}</td>
+        <td class="small">{% if a.last_error %}<span class="text-danger"><i class="bi bi-x-circle"></i> Error</span>{% elseif a.last_polled_at %}<i class="bi bi-check-circle text-success"></i> {{ a.last_polled_at|hace }}{% else %}<span class="text-muted">Nunca</span>{% endif %}</td>
+        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/admin/correo/{{ a.id }}/registro">Registro</a></td>
+    </tr>
+    {% if a.last_error %}<tr><td colspan="6" class="small text-danger border-top-0 pt-0">{{ a.last_error }}</td></tr>{% endif %}
+    {% else %}
+    <tr><td colspan="6" class="empty-state"><i class="bi bi-envelope-at"></i>No hay buzones configurados. Mientras tanto, las incidencias se crean a mano y no se envían correos a clientes.</td></tr>
+    {% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

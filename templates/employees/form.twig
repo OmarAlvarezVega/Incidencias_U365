@@ -1,0 +1,70 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}{{ e ? 'Editar empleado' : 'Nuevo empleado' }}{% endblock %}
+{% macro field(name, label, value, opts) %}
+<div class="{{ opts.col ?? 'col-md-6' }}">
+    <label class="form-label {{ opts.required ?? false ? 'required' }}" for="f_{{ name }}">{{ label }}</label>
+    <input class="form-control {{ error(name) ? 'is-invalid' }}" id="f_{{ name }}" name="{{ name }}" type="{{ opts.type ?? 'text' }}" value="{{ old(name, value) }}" {{ opts.required ?? false ? 'required' }} {% if opts.max is defined %}maxlength="{{ opts.max }}"{% endif %} {% if opts.auto is defined %}autocomplete="{{ opts.auto }}"{% endif %}>
+    {% if error(name) %}<div class="invalid-feedback">{{ error(name) }}</div>{% endif %}
+    {% if opts.help is defined %}<div class="form-text">{{ opts.help }}</div>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+{% import _self as f %}
+<div class="page-header"><div><h1>{{ e ? 'Editar ' ~ e.first_name ~ ' ' ~ e.last_name : 'Nuevo empleado' }}</h1></div></div>
+<form method="post" action="{{ e ? '/empleados/' ~ e.id : '/empleados' }}" autocomplete="off">
+{{ csrf_field() }}
+<div class="card mb-3"><div class="card-header">Datos personales y de acceso</div><div class="card-body">
+<div class="row g-3">
+    {{ f.field('first_name', 'Nombre', e.first_name ?? '', {required: true, max: 80, col: 'col-md-4'}) }}
+    {{ f.field('last_name', 'Apellidos', e.last_name ?? '', {required: true, max: 120, col: 'col-md-8'}) }}
+    {{ f.field('email', 'Correo corporativo', e.email ?? '', {required: true, type: 'email', auto: 'off', help: 'Con este correo inicia sesión y recibe los avisos.'}) }}
+    {{ f.field('username', 'Usuario (opcional)', e.username ?? '', {max: 60, auto: 'off', help: 'Alternativa al correo para iniciar sesión.'}) }}
+    {{ f.field('corporate_phone', 'Teléfono corporativo', e.corporate_phone ?? '', {type: 'tel', max: 30, col: 'col-md-4'}) }}
+    {{ f.field('hired_on', 'Fecha de alta', e.hired_on ?? '', {type: 'date', col: 'col-md-4'}) }}
+    {% if e %}{{ f.field('left_on', 'Fecha de baja', e.left_on ?? '', {type: 'date', col: 'col-md-4'}) }}{% endif %}
+    <div class="col-md-4">
+        <label class="form-label required" for="f_role_id">Rol</label>
+        {% set rid = old('role_id', e.role_id ?? '') ~ '' %}
+        {% if can('permissions.manage') and (not e or e.id != current_user.id) %}
+        <select class="form-select {{ error('role_id') ? 'is-invalid' }}" id="f_role_id" name="role_id" required>
+            {% for r in roles %}<option value="{{ r.id }}" {{ rid == r.id ~ '' or (rid == '' and r.code == 'technician') ? 'selected' }}>{{ r.name }}</option>{% endfor %}
+        </select>
+        {% else %}
+            {% set fixed = e ? e.role_id : (roles|filter(r => r.code == 'technician')|first).id %}
+            <input type="hidden" name="role_id" value="{{ fixed }}">
+            <input class="form-control" id="f_role_id" value="{% for r in roles %}{{ r.id == fixed ? r.name }}{% endfor %}" disabled>
+            <div class="form-text">{{ e and e.id == current_user.id ? 'No puedes cambiar tu propio rol.' : 'Cambiar roles requiere el permiso de gestión de permisos.' }}</div>
+        {% endif %}
+        {% if error('role_id') %}<div class="invalid-feedback d-block">{{ error('role_id') }}</div>{% endif %}
+    </div>
+    {{ f.field('max_open_tickets', 'Límite de incidencias abiertas', e.max_open_tickets ?? '', {type: 'number', col: 'col-md-4', help: 'Opcional. Por defecto ' ~ setting('workload.default_capacity', 15) ~ '. Se usa en la vista de carga.'}) }}
+</div>
+</div></div>
+
+<div class="card mb-3"><div class="card-header">Equipos</div><div class="card-body">
+    {% if teams is empty %}<p class="text-muted small mb-0">No hay equipos. Créalos en Administración › Equipos.</p>{% endif %}
+    <div class="row g-2">
+    {% for t in teams %}
+        <div class="col-md-6 d-flex gap-3 align-items-center border rounded p-2">
+            <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="team_ids[]" value="{{ t.id }}" id="tm{{ t.id }}" {{ t.id in memberOf ? 'checked' }}><label class="form-check-label" for="tm{{ t.id }}">{{ t.name }}</label></div>
+            <div class="form-check mb-0 ms-auto small"><input class="form-check-input" type="checkbox" name="lead_team_ids[]" value="{{ t.id }}" id="tl{{ t.id }}" {{ t.id in leads ? 'checked' }}><label class="form-check-label" for="tl{{ t.id }}">Coordina</label></div>
+        </div>
+    {% endfor %}
+    </div>
+    <div class="form-text">El coordinador de un equipo ve y gestiona las incidencias de ese equipo si su rol lo permite.</div>
+</div></div>
+
+{% if specialties %}
+<div class="card mb-3"><div class="card-header">Especialidades</div><div class="card-body d-flex flex-wrap gap-3">
+    {% for sp in specialties %}<div class="form-check"><input class="form-check-input" type="checkbox" name="specialty_ids[]" value="{{ sp.id }}" id="sp{{ sp.id }}" {{ sp.id in mySpecialties ? 'checked' }}><label class="form-check-label" for="sp{{ sp.id }}">{{ sp.name }}</label></div>{% endfor %}
+</div></div>
+{% endif %}
+{% if not e %}
+<div class="card mb-3"><div class="card-header">Contraseña temporal</div><div class="card-body">
+    {% include 'partials/password_fields.twig' %}
+    <div class="form-text">Comunícasela por un canal seguro (no por correo). Tendrá que cambiarla en su primer acceso.</div>
+</div></div>
+{% endif %}
+<div class="d-flex gap-2"><button class="btn btn-primary">{{ e ? 'Guardar cambios' : 'Crear empleado' }}</button><a class="btn btn-light" href="{{ e ? '/empleados/' ~ e.id : '/empleados' }}">Cancelar</a></div>
+</form>
+{% endblock %}

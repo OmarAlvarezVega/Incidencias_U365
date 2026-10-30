@@ -1,26 +1,47 @@
 # Tareas pendientes
 
-## Bloquean la fase 2 (dependen de Omar)
+Actualizado: 27/10/2026, versión 1.0.0 (fases 1 a 9 entregadas en código).
 
-- [ ] Ejecutar `tools/diagnostico.php` en IONOS (web y, si hay SSH, consola) con la prueba de base de datos y compartir el informe.
-- [ ] Confirmar el plan de IONOS: SSH, cron e intervalo mínimo.
-- [ ] Indicar dónde está el buzón `soporte@univers365.com` (IONOS Mail, Microsoft 365 o Google).
-- [ ] Confirmar si el subdominio puede apuntar a la subcarpeta `public/`.
+## Bloquean producción (dependen de Omar o de IONOS)
+
+- [ ] Ejecutar `tools/diagnostico.php` en IONOS y compartir el informe
+      (versión de PHP, extensiones, ruta del PHP de consola, límites).
+- [ ] Confirmar plan de IONOS: SSH sí/no, cron e intervalo mínimo.
+- [ ] Decir dónde está `soporte@univers365.com` (IONOS Mail, Microsoft 365 o
+      Google). Con Google hay que decidir cómo autenticar (ver limitaciones).
+- [ ] Confirmar que el subdominio puede apuntar a `public/`.
+- [ ] **Primera prueba contra el buzón real**: IMAP solo se ha probado con
+      Dovecot; el envío SMTP y el OAuth2 de Microsoft no se han probado
+      contra ningún servidor.
+- [ ] **Primera prueba real con Meta** (webhook, envío, descarga de medios),
+      si WhatsApp entra en el arranque.
+- [ ] Recorrer `docs/checklist-preproduccion.md` completo en IONOS.
 
 ## Decisiones provisionales por confirmar
 
-- [ ] Ámbito del coordinador (equipos, categorías o cartera de clientes).
-- [ ] SLA natural o laborable para crítica, urgente y alta, y horario laboral real.
-- [ ] Número de WhatsApp: nuevo dedicado o el actual.
-- [ ] Cierre automático de incidencias resueltas (propuesto: 7 días).
+- [ ] Ámbito del coordinador: implementado **por equipos** (decisión 010).
+- [ ] SLA: implementado en tiempo **laborable** para todas las prioridades,
+      política **desactivada** hasta cargar horario y festivos reales (011).
+- [ ] Número de WhatsApp: nuevo dedicado o el actual (013).
+- [ ] Cierre automático de resueltas: 7 días por defecto (ajustable).
+- [ ] Remitentes desconocidos: a revisión por defecto (012).
+- [ ] Plazo de conservación de datos personales y de correos originales.
 
-## Fase 2 (base del sistema)
+## Mejoras identificadas (no bloquean)
 
-- [ ] Núcleo: router, petición/respuesta, contenedor, configuración, PDO.
-- [ ] Ejecutor de migraciones con checksum (`bin/migrate.php`).
-- [ ] Autenticación, sesiones, CSRF, límites de intentos, recuperación de contraseña.
-- [ ] Usuarios, roles y permisos con políticas en servidor.
-- [ ] Auditoría encadenada por hash.
-- [ ] Layout con menú lateral, barra superior y estados vacíos.
-- [ ] Instalador bloqueable.
-- [ ] Despliegue de prueba en IONOS con pruebas de seguridad básicas.
+- [ ] Pantalla para aplicar migraciones sin SSH (con copia previa obligatoria).
+- [ ] OAuth2 de Google Workspace para buzones de Google.
+- [ ] Portal de clientes (el modelo y los permisos ya existen).
+- [ ] Anonimización RGPD que también limpie el texto de mensajes y notas.
+- [ ] Borrado automático por plazo de conservación.
+- [ ] Marcar como fallo definitivo (sin reintentos) el aviso al cliente cuando
+      no hay ningún buzón activo; ahora se reintenta hasta agotar intentos.
+- [ ] Pruebas automáticas del JavaScript de la interfaz (navegador).
+- [ ] Prueba de carga con el volumen real esperado en el plan de IONOS.
+
+## Hecho
+
+- Fase 1: análisis, arquitectura, esquema y diagnóstico (PR #1).
+- Fases 2–9: núcleo, autenticación, permisos, incidencias, tiempos, clientes,
+  empleados, carga, informes, correo, WhatsApp, SLA, notificaciones,
+  administración, auditoría, RGPD, copias, instalador, pruebas y manuales.

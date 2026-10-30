@@ -1,0 +1,120 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}{{ e.first_name }} {{ e.last_name }}{% endblock %}
+{% block content %}
+{% set self = e.id == current_user.id %}
+<div class="page-header">
+    <div>
+        <h1>{{ e.first_name }} {{ e.last_name }}</h1>
+        <div class="subtitle">{{ e.role }} · {{ e.email }}
+            {% if e.status == 'blocked' %}<span class="badge text-bg-warning ms-1">Bloqueado</span>{% elseif e.status == 'disabled' %}<span class="badge text-bg-secondary ms-1">Desactivado</span>{% else %}<span class="badge text-bg-success ms-1">Activo</span>{% endif %}
+            {% if e.must_change_password %}<span class="badge text-bg-light ms-1">Contraseña pendiente de cambio</span>{% endif %}</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if can('employees.manage') %}<a class="btn btn-outline-secondary btn-sm" href="/empleados/{{ e.id }}/editar"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+        {% if can('users.manage') and not self %}
+            {% if e.status != 'active' %}
+            <form method="post" action="/empleados/{{ e.id }}/estado">{{ csrf_field() }}<input type="hidden" name="status" value="active"><button class="btn btn-outline-success btn-sm"><i class="bi bi-unlock"></i> Activar</button></form>
+            {% endif %}
+            {% if e.status != 'blocked' %}
+            <form method="post" action="/empleados/{{ e.id }}/estado" data-confirm="Se bloqueará el acceso y se cerrarán sus sesiones abiertas.">{{ csrf_field() }}<input type="hidden" name="status" value="blocked"><button class="btn btn-outline-warning btn-sm"><i class="bi bi-lock"></i> Bloquear</button></form>
+            {% endif %}
+            {% if e.status != 'disabled' %}
+            <form method="post" action="/empleados/{{ e.id }}/estado" data-confirm="Se desactivará la cuenta (baja). Su historial se conserva.">{{ csrf_field() }}<input type="hidden" name="status" value="disabled"><button class="btn btn-outline-danger btn-sm"><i class="bi bi-person-x"></i> Desactivar</button></form>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Abiertas como responsable</div><div class="kpi-value">{{ tickets|filter(t => t.role == 'owner')|length }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Colabora en</div><div class="kpi-value">{{ tickets|filter(t => t.role == 'collaborator')|length }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Resueltas (30 días)</div><div class="kpi-value">{{ stats.resolved_30 }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Tiempo (30 días)</div><div class="kpi-value">{{ stats.minutes_30|minutos }}</div></div></div></div>
+</div>
+
+<div class="row g-3">
+<div class="col-lg-8">
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>Incidencias abiertas</span><a class="small" href="/incidencias?vista=abiertas&responsable={{ e.id }}">Ver en el listado</a></div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0"><tbody>
+    {% for t in tickets %}
+        <tr>
+            <td class="text-nowrap"><span class="ticket-number">{{ t.ticket_number }}</span>{% if t.role == 'collaborator' %}<div class="small text-muted"><i class="bi bi-people"></i> Colabora</div>{% endif %}</td>
+            <td class="min-w-0"><a class="row-link" href="/incidencias/{{ t.id }}">{{ t.subject }}</a><div class="small text-muted">{{ t.client ?: 'Sin identificar' }}</div></td>
+            <td>{{ m.status(t.status, t.status_color) }}</td>
+            <td>{{ m.priority(t.priority, t.priority_color) }}</td>
+            <td class="small text-muted text-nowrap">{{ t.last_activity_at|hace }}</td>
+        </tr>
+    {% else %}
+        <tr><td class="empty-state"><i class="bi bi-check2-circle"></i>No tiene incidencias abiertas.</td></tr>
+    {% endfor %}
+    </tbody></table></div></div>
+
+    {% if permissions %}
+    <div class="card mb-3" id="permisos"><div class="card-header">Permisos individuales</div><div class="card-body">
+        <p class="small text-muted">Por defecto se aplican los permisos del rol <strong>{{ e.role }}</strong>. Aquí puedes conceder o denegar permisos concretos solo a esta persona; la denegación prevalece sobre el rol.</p>
+        {% if self %}<div class="alert alert-info small">No puedes modificar tus propios permisos.</div>{% endif %}
+        <form method="post" action="/empleados/{{ e.id }}/permisos">{{ csrf_field() }}
+        <div class="table-responsive"><table class="table table-sm align-middle small">
+            <thead><tr><th>Permiso</th><th class="text-center">Rol</th><th style="width: 12rem">Excepción</th></tr></thead>
+            <tbody>
+            {% set module = '' %}
+            {% for p in permissions %}
+                {% if p.module != module %}{% set module = p.module %}<tr class="table-light"><th colspan="3" class="text-uppercase small">{{ module }}</th></tr>{% endif %}
+                {% set ov = overrides[p.code] ?? '' %}
+                <tr>
+                    <td>{{ p.description }}<div class="text-muted"><code>{{ p.code }}</code></div></td>
+                    <td class="text-center">{% if p.in_role %}<i class="bi bi-check-lg text-success" title="Incluido en el rol"></i>{% else %}<i class="bi bi-dash text-muted" title="No incluido"></i>{% endif %}</td>
+                    <td><select class="form-select form-select-sm" name="perm[{{ p.code }}]" aria-label="Excepción para {{ p.code }}" {{ self ? 'disabled' }}>
+                        <option value="">Según rol</option>
+                        <option value="allow" {{ ov == 'allow' ? 'selected' }}>Conceder</option>
+                        <option value="deny" {{ ov == 'deny' ? 'selected' }}>Denegar</option>
+                    </select></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+        {% if not self %}<button class="btn btn-sm btn-primary">Guardar permisos</button>{% endif %}
+        </form>
+    </div></div>
+    {% endif %}
+</div>
+
+<div class="col-lg-4">
+    <div class="card mb-3"><div class="card-header">Ficha</div><div class="card-body small">
+        <dl class="row mb-0">
+            <dt class="col-5">Usuario</dt><dd class="col-7">{{ e.username ?: '—' }}</dd>
+            <dt class="col-5">Teléfono</dt><dd class="col-7">{{ e.corporate_phone ?: '—' }}</dd>
+            <dt class="col-5">Alta</dt><dd class="col-7">{{ e.hired_on ? e.hired_on|dia : '—' }}</dd>
+            {% if e.left_on %}<dt class="col-5">Baja</dt><dd class="col-7">{{ e.left_on|dia }}</dd>{% endif %}
+            <dt class="col-5">Límite</dt><dd class="col-7">{{ e.max_open_tickets ?: setting('workload.default_capacity', 15) }} abiertas</dd>
+            <dt class="col-5">Último acceso</dt><dd class="col-7">{{ e.last_login_at ? e.last_login_at|fecha : 'Nunca' }}</dd>
+            <dt class="col-5">Especialidades</dt><dd class="col-7">{{ specialties ? specialties|join(', ') : '—' }}</dd>
+            <dt class="col-5">Equipos</dt><dd class="col-7">{% for t in teams %}{{ t.name }}{% if t.is_lead %} <span class="badge text-bg-light">coordina</span>{% endif %}{{ not loop.last ? ', ' }}{% else %}—{% endfor %}</dd>
+        </dl>
+    </div></div>
+
+    {% if can('tickets.reassign') and tickets is not empty %}
+    <div class="card mb-3"><div class="card-header">Reasignar sus incidencias</div><div class="card-body">
+        <p class="small text-muted">Útil en vacaciones o bajas. Pasa todas sus incidencias abiertas a otra persona o a la bandeja sin asignar.</p>
+        <form method="post" action="/empleados/{{ e.id }}/reasignar" data-confirm="Se reasignarán todas sus incidencias abiertas.">{{ csrf_field() }}
+            <label class="form-label small" for="to_user_id">Nuevo responsable</label>
+            <select class="form-select form-select-sm mb-2" id="to_user_id" name="to_user_id"><option value="">Dejar sin asignar</option>{% for s in staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+            <div class="form-check small mb-2"><input class="form-check-input" type="checkbox" id="inc_col" name="include_collaborations" value="1"><label class="form-check-label" for="inc_col">Quitarle también de las incidencias en que colabora</label></div>
+            <button class="btn btn-sm btn-outline-primary">Reasignar</button>
+        </form>
+    </div></div>
+    {% endif %}
+
+    {% if can('users.manage') and not self %}
+    <div class="card mb-3"><div class="card-header">Contraseña temporal</div><div class="card-body">
+        <p class="small text-muted">Cierra sus sesiones y le obliga a cambiarla al entrar. Si tiene correo, también puede usar «He olvidado mi contraseña».</p>
+        <form method="post" action="/empleados/{{ e.id }}/contrasena" autocomplete="off">{{ csrf_field() }}
+            {% include 'partials/password_fields.twig' %}
+            <button class="btn btn-sm btn-outline-danger">Establecer</button>
+        </form>
+    </div></div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

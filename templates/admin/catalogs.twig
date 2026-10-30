@@ -1,0 +1,149 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}Catálogos{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Catálogos</h1><div class="subtitle">Valores que se eligen en las incidencias. Lo que ya se ha usado no se borra: se desactiva.</div></div></div>
+<ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto small">
+{% for k, v in tabs %}<li class="nav-item"><a class="nav-link text-nowrap {{ tab == k ? 'active' }}" href="/admin/catalogos?tab={{ k }}">{{ v }}</a></li>{% endfor %}
+</ul>
+{% set phases = {new: 'Nueva', open: 'Abierta', pending: 'En pausa / espera', resolved: 'Resuelta', closed: 'Cerrada', cancelled: 'Cancelada'} %}
+
+{% if tab == 'estados' %}
+<div class="card"><div class="table-responsive"><table class="table align-middle mb-0 small">
+    <thead><tr><th>Estado</th><th>Fase</th><th>Color</th><th>Orden</th><th>Pausa SLA</th><th>Activo</th><th></th></tr></thead>
+    <tbody>
+    {% for s in statuses %}
+    <tr><td colspan="7" class="p-0"><form method="post" action="/admin/catalogos/estados" class="d-flex flex-wrap gap-2 align-items-center p-2">{{ csrf_field() }}<input type="hidden" name="id" value="{{ s.id }}">
+        <input class="form-control form-control-sm" style="max-width: 16rem" name="name" value="{{ s.name }}" maxlength="80" required aria-label="Nombre">
+        <span class="text-muted" style="min-width: 9rem">{{ phases[s.phase] }}{% if s.code in system %} <i class="bi bi-lock" title="Estado del sistema"></i>{% endif %}</span>
+        <input type="color" class="form-control form-control-sm form-control-color" name="color" value="{{ s.color }}" aria-label="Color">
+        <input type="number" class="form-control form-control-sm" style="max-width: 6rem" name="sort_order" value="{{ s.sort_order }}" min="0" aria-label="Orden">
+        <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="pauses_sla" value="1" id="ps{{ s.id }}" {{ s.pauses_sla ? 'checked' }}><label class="form-check-label" for="ps{{ s.id }}">Pausa SLA</label></div>
+        <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="active" value="1" id="ac{{ s.id }}" {{ s.active ? 'checked' }} {{ s.code in system ? 'disabled' }}><label class="form-check-label" for="ac{{ s.id }}">Activo</label></div>
+        {% if s.code in system %}<input type="hidden" name="active" value="1">{% endif %}
+        <span class="text-muted ms-auto">{{ s.used }} incidencias</span>
+        <button class="btn btn-sm btn-outline-primary">Guardar</button>
+    </form></td></tr>
+    {% endfor %}
+    </tbody>
+</table></div>
+<div class="card-footer"><form method="post" action="/admin/catalogos/estados" class="d-flex flex-wrap gap-2 align-items-center">{{ csrf_field() }}
+    <strong class="small">Nuevo estado</strong>
+    <input class="form-control form-control-sm" style="max-width: 16rem" name="name" maxlength="80" required placeholder="Nombre" aria-label="Nombre">
+    <select class="form-select form-select-sm w-auto" name="phase" required aria-label="Fase"><option value="">Fase…</option>{% for k, v in phases %}{% if k in ['open','pending'] %}<option value="{{ k }}">{{ v }}</option>{% endif %}{% endfor %}</select>
+    <input type="color" class="form-control form-control-sm form-control-color" name="color" value="#6C757D" aria-label="Color">
+    <input type="number" class="form-control form-control-sm" style="max-width: 6rem" name="sort_order" value="65" aria-label="Orden">
+    <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="pauses_sla" value="1" id="ps_new"><label class="form-check-label small" for="ps_new">Pausa SLA</label></div>
+    <input type="hidden" name="active" value="1">
+    <button class="btn btn-sm btn-primary">Crear</button>
+</form><div class="form-text">La fase determina cómo lo trata la aplicación (abierta cuenta como en curso; en espera puede pausar el SLA).</div></div>
+</div>
+
+{% elseif tab == 'transiciones' %}
+<form method="post" action="/admin/catalogos/transiciones">{{ csrf_field() }}
+<div class="card"><div class="card-body small text-muted">Fila: estado actual. Columna: estado al que se puede pasar. «Reabrir» exige el permiso de reabrir incidencias.</div>
+<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0 small text-center">
+    <thead><tr><th class="text-start">Desde \ hacia</th>{% for to in statuses %}<th>{{ m.status(to.name, to.color) }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for from in statuses %}
+        <tr><th class="text-start text-nowrap">{{ m.status(from.name, from.color) }}</th>
+        {% for to in statuses %}
+            {% if from.id == to.id %}<td class="table-light"></td>{% else %}
+            {% set cur = transitions[from.id][to.id] ?? null %}
+            <td><select class="form-select form-select-sm" name="t[{{ from.id }}][{{ to.id }}]" aria-label="De {{ from.name }} a {{ to.name }}">
+                <option value="none" {{ cur is null ? 'selected' }}>—</option>
+                <option value="edit" {{ cur is not null and cur == '' ? 'selected' }}>Sí</option>
+                <option value="tickets.reopen" {{ cur == 'tickets.reopen' ? 'selected' }}>Reabrir</option>
+            </select></td>
+            {% endif %}
+        {% endfor %}
+        </tr>
+    {% endfor %}
+    </tbody>
+</table></div>
+<div class="card-footer"><button class="btn btn-sm btn-primary">Guardar flujo</button></div></div>
+</form>
+
+{% elseif tab == 'prioridades' %}
+<div class="card"><ul class="list-group list-group-flush">
+{% for p in rows %}
+    <li class="list-group-item"><form method="post" action="/admin/catalogos/prioridades" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}<input type="hidden" name="id" value="{{ p.id }}">
+        <input class="form-control form-control-sm" style="max-width: 14rem" name="name" value="{{ p.name }}" maxlength="80" required aria-label="Nombre">
+        <label class="text-muted" for="lv{{ p.id }}">Nivel</label><input type="number" id="lv{{ p.id }}" class="form-control form-control-sm" style="max-width: 5rem" name="level" value="{{ p.level }}" min="1" max="20">
+        <input type="color" class="form-control form-control-sm form-control-color" name="color" value="{{ p.color }}" aria-label="Color">
+        <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="active" value="1" id="pa{{ p.id }}" {{ p.active ? 'checked' }}><label class="form-check-label" for="pa{{ p.id }}">Activa</label></div>
+        <span class="text-muted ms-auto">{{ p.used }} incidencias</span><button class="btn btn-sm btn-outline-primary">Guardar</button>
+    </form></li>
+{% endfor %}
+</ul>
+<div class="card-footer"><form method="post" action="/admin/catalogos/prioridades" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}
+    <strong>Nueva</strong><input class="form-control form-control-sm" style="max-width: 14rem" name="name" maxlength="80" required placeholder="Nombre" aria-label="Nombre">
+    <input type="number" class="form-control form-control-sm" style="max-width: 5rem" name="level" min="1" max="20" required placeholder="Nivel" aria-label="Nivel">
+    <input type="color" class="form-control form-control-sm form-control-color" name="color" value="#6C757D" aria-label="Color"><input type="hidden" name="active" value="1">
+    <button class="btn btn-sm btn-primary">Crear</button></form>
+<div class="form-text">El nivel ordena las prioridades (mayor = más urgente). A partir del nivel 4 se consideran altas en la carga de trabajo.</div></div>
+</div>
+
+{% elseif tab == 'categorias' %}
+<div class="card"><ul class="list-group list-group-flush">
+{% for c in rows %}
+    <li class="list-group-item {{ c.parent_id ? 'ps-5' }}"><form method="post" action="/admin/catalogos/categorias" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}<input type="hidden" name="id" value="{{ c.id }}">
+        <input class="form-control form-control-sm" style="max-width: 16rem" name="name" value="{{ c.name }}" maxlength="80" required aria-label="Nombre">
+        <select class="form-select form-select-sm w-auto" name="parent_id" aria-label="Categoría superior"><option value="">(principal)</option>{% for p in parents %}{% if p.id != c.id %}<option value="{{ p.id }}" {{ c.parent_id == p.id ? 'selected' }}>{{ p.name }}</option>{% endif %}{% endfor %}</select>
+        <input type="number" class="form-control form-control-sm" style="max-width: 6rem" name="sort_order" value="{{ c.sort_order }}" min="0" aria-label="Orden">
+        <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="active" value="1" id="ca{{ c.id }}" {{ c.active ? 'checked' }}><label class="form-check-label" for="ca{{ c.id }}">Activa</label></div>
+        <span class="text-muted ms-auto">{{ c.used }} incidencias</span><button class="btn btn-sm btn-outline-primary">Guardar</button>
+    </form></li>
+{% endfor %}
+</ul>
+<div class="card-footer"><form method="post" action="/admin/catalogos/categorias" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}
+    <strong>Nueva</strong><input class="form-control form-control-sm" style="max-width: 16rem" name="name" maxlength="80" required placeholder="Nombre" aria-label="Nombre">
+    <select class="form-select form-select-sm w-auto" name="parent_id" aria-label="Categoría superior"><option value="">(principal)</option>{% for p in parents %}<option value="{{ p.id }}">Subcategoría de {{ p.name }}</option>{% endfor %}</select>
+    <input type="number" class="form-control form-control-sm" style="max-width: 6rem" name="sort_order" value="0" aria-label="Orden"><button class="btn btn-sm btn-primary">Crear</button></form></div>
+</div>
+
+{% elseif tab == 'etiquetas' %}
+<div class="card"><ul class="list-group list-group-flush">
+{% for g in rows %}
+    <li class="list-group-item d-flex flex-wrap gap-2 align-items-center small">
+        <form method="post" action="/admin/catalogos/etiquetas" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">{{ csrf_field() }}<input type="hidden" name="id" value="{{ g.id }}">
+            <input class="form-control form-control-sm" style="max-width: 14rem" name="name" value="{{ g.name }}" maxlength="50" required aria-label="Nombre">
+            <input type="color" class="form-control form-control-sm form-control-color" name="color" value="{{ g.color ?: '#6C757D' }}" aria-label="Color">
+            <span class="text-muted ms-auto">{{ g.used }} incidencias</span><button class="btn btn-sm btn-outline-primary">Guardar</button>
+        </form>
+        <form method="post" action="/admin/catalogos/etiquetas" data-confirm="Se quitará la etiqueta de {{ g.used }} incidencias.">{{ csrf_field() }}<input type="hidden" name="id" value="{{ g.id }}"><input type="hidden" name="delete" value="1"><button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button></form>
+    </li>
+{% else %}<li class="list-group-item small text-muted">Sin etiquetas.</li>{% endfor %}
+</ul>
+<div class="card-footer"><form method="post" action="/admin/catalogos/etiquetas" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}
+    <strong>Nueva</strong><input class="form-control form-control-sm" style="max-width: 14rem" name="name" maxlength="50" required placeholder="Nombre" aria-label="Nombre">
+    <input type="color" class="form-control form-control-sm form-control-color" name="color" value="#6C757D" aria-label="Color"><button class="btn btn-sm btn-primary">Crear</button></form></div>
+</div>
+
+{% elseif tab == 'canales' %}
+<div class="card"><ul class="list-group list-group-flush">
+{% for c in rows %}
+    <li class="list-group-item"><form method="post" action="/admin/catalogos/canales" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}<input type="hidden" name="code" value="{{ c.code }}">
+        <code style="min-width: 7rem">{{ c.code }}</code>
+        <input class="form-control form-control-sm" style="max-width: 16rem" name="name" value="{{ c.name }}" maxlength="60" required aria-label="Nombre">
+        <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="active" value="1" id="ch{{ c.code }}" {{ c.active ? 'checked' }}><label class="form-check-label" for="ch{{ c.code }}">Activo</label></div>
+        <button class="btn btn-sm btn-outline-primary ms-auto">Guardar</button>
+    </form></li>
+{% endfor %}
+</ul><div class="card-footer small text-muted">Portal, API y monitorización están preparados para fases posteriores; activarlos aquí no los pone en marcha.</div></div>
+
+{% elseif tab == 'especialidades' %}
+<div class="card"><ul class="list-group list-group-flush">
+{% for s in rows %}
+    <li class="list-group-item"><form method="post" action="/admin/catalogos/especialidades" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}<input type="hidden" name="id" value="{{ s.id }}">
+        <input class="form-control form-control-sm" style="max-width: 16rem" name="name" value="{{ s.name }}" maxlength="80" required aria-label="Nombre">
+        <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="active" value="1" id="sp{{ s.id }}" {{ s.active ? 'checked' }}><label class="form-check-label" for="sp{{ s.id }}">Activa</label></div>
+        <span class="text-muted ms-auto">{{ s.used }} empleados</span><button class="btn btn-sm btn-outline-primary">Guardar</button>
+    </form></li>
+{% else %}<li class="list-group-item small text-muted">Sin especialidades.</li>{% endfor %}
+</ul>
+<div class="card-footer"><form method="post" action="/admin/catalogos/especialidades" class="d-flex flex-wrap gap-2 align-items-center small">{{ csrf_field() }}
+    <strong>Nueva</strong><input class="form-control form-control-sm" style="max-width: 16rem" name="name" maxlength="80" required placeholder="Nombre" aria-label="Nombre"><button class="btn btn-sm btn-primary">Crear</button></form></div>
+</div>
+{% endif %}
+{% endblock %}

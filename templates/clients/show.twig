@@ -1,0 +1,166 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}{{ c.trade_name ?: c.legal_name }}{% endblock %}
+{% macro contact_form(c, addresses, contact, ids) %}
+<form method="post" action="/clientes/{{ c.id }}/contactos" class="row g-2">
+    {{ csrf_field() }}
+    {% if contact %}<input type="hidden" name="contact_id" value="{{ contact.id }}">{% endif %}
+    {% set p = contact ? 'e' ~ contact.id : 'n' %}
+    <div class="col-md-4"><label class="form-label small required" for="{{ p }}_fn">Nombre</label><input class="form-control form-control-sm" id="{{ p }}_fn" name="first_name" maxlength="80" required value="{{ contact.first_name ?? '' }}"></div>
+    <div class="col-md-4"><label class="form-label small" for="{{ p }}_ln">Apellidos</label><input class="form-control form-control-sm" id="{{ p }}_ln" name="last_name" maxlength="120" value="{{ contact.last_name ?? '' }}"></div>
+    <div class="col-md-4"><label class="form-label small" for="{{ p }}_jt">Cargo</label><input class="form-control form-control-sm" id="{{ p }}_jt" name="job_title" maxlength="100" value="{{ contact.job_title ?? '' }}" placeholder="Gerencia, Administración, IT…"></div>
+    <div class="col-md-6"><label class="form-label small" for="{{ p }}_em">Correos</label><input class="form-control form-control-sm" id="{{ p }}_em" name="emails" value="{{ (ids.email ?? [])|join(', ') }}" placeholder="separados por comas"></div>
+    <div class="col-md-6"><label class="form-label small" for="{{ p }}_ph">Teléfonos / WhatsApp</label><input class="form-control form-control-sm" id="{{ p }}_ph" name="phones" value="{{ (ids.phone ?? [])|join(', ') }}" placeholder="+34 600 000 000, separados por comas"></div>
+    <div class="col-md-6"><label class="form-label small" for="{{ p }}_ad">Sede</label>
+        <select class="form-select form-select-sm" id="{{ p }}_ad" name="address_id"><option value="">Sin sede</option>{% for a in addresses %}<option value="{{ a.id }}" {{ contact and contact.address_id == a.id ? 'selected' }}>{{ a.label }}</option>{% endfor %}</select></div>
+    <div class="col-md-6 d-flex align-items-end gap-3">
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="{{ p }}_pr" name="is_primary" value="1" {{ contact and contact.is_primary ? 'checked' }}><label class="form-check-label small" for="{{ p }}_pr">Contacto principal</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="{{ p }}_ac" name="active" value="1" {{ not contact or contact.active ? 'checked' }}><label class="form-check-label small" for="{{ p }}_ac">Activo</label></div>
+    </div>
+    <div class="col-12"><label class="form-label small" for="{{ p }}_no">Notas</label><textarea class="form-control form-control-sm" id="{{ p }}_no" name="notes" rows="2">{{ contact.notes ?? '' }}</textarea></div>
+    <div class="col-12"><button class="btn btn-sm btn-primary">{{ contact ? 'Guardar contacto' : 'Añadir contacto' }}</button></div>
+</form>
+{% endmacro %}
+{% block content %}
+{% import _self as s %}
+<div class="page-header">
+    <div>
+        <h1>{{ c.trade_name ?: c.legal_name }}</h1>
+        <div class="subtitle">{{ c.code }}{% if c.trade_name and c.trade_name != c.legal_name %} · {{ c.legal_name }}{% endif %}{% if c.tax_id %} · {{ c.tax_id }}{% endif %}
+            {% if c.status == 'inactive' %}<span class="badge text-bg-secondary ms-1">Inactivo</span>{% endif %}
+            {% if c.anonymized_at %}<span class="badge text-bg-warning ms-1">Anonimizado</span>{% endif %}</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if can('tickets.create') %}<a class="btn btn-primary btn-sm" href="/incidencias/nueva?cliente={{ c.id }}"><i class="bi bi-plus-lg"></i> Nueva incidencia</a>{% endif %}
+        {% if can('clients.manage') %}
+        <a class="btn btn-outline-secondary btn-sm" href="/clientes/{{ c.id }}/editar"><i class="bi bi-pencil"></i> Editar</a>
+        <form method="post" action="/clientes/{{ c.id }}/eliminar" data-confirm="Se eliminará el cliente. Sus incidencias se conservan, pero dejará de aparecer en listados y búsquedas.">{{ csrf_field() }}<button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Eliminar</button></form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Abiertas</div><div class="kpi-value">{{ stats.open ?? 0 }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Total histórico</div><div class="kpi-value">{{ stats.total ?? 0 }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Últimos 90 días</div><div class="kpi-value">{{ stats.last_90 ?? 0 }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Tiempo dedicado</div><div class="kpi-value">{{ (stats.minutes ?? 0)|minutos }}</div></div></div></div>
+</div>
+
+<div class="row g-3">
+<div class="col-lg-8">
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>Incidencias</span><a class="small" href="/incidencias?vista=todas&cliente={{ c.id }}">Ver todas</a></div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <tbody>
+        {% for t in tickets %}
+            <tr>
+                <td class="text-nowrap"><span class="ticket-number">{{ t.ticket_number }}</span><div class="small text-muted">{{ t.created_at|dia }}</div></td>
+                <td class="min-w-0"><a class="row-link" href="/incidencias/{{ t.id }}">{{ t.subject }}</a><div class="small text-muted">{{ t.owner ?: 'Sin asignar' }}</div></td>
+                <td>{{ m.status(t.status, t.status_color) }}</td>
+                <td>{{ m.priority(t.priority, t.priority_color) }}</td>
+                <td class="small text-muted text-nowrap">{{ t.last_activity_at|hace }}</td>
+            </tr>
+        {% else %}
+            <tr><td class="empty-state"><i class="bi bi-inbox"></i>Este cliente no tiene incidencias visibles para ti.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table></div></div>
+
+    <div class="card mb-3" id="contactos"><div class="card-header">Contactos ({{ contacts|length }})</div>
+    <ul class="list-group list-group-flush">
+    {% for ct in contacts %}
+        {% set ids = identities[ct.id] ?? {} %}
+        <li class="list-group-item">
+            <div class="d-flex justify-content-between gap-2 flex-wrap">
+                <div>
+                    <strong>{{ ct.first_name }} {{ ct.last_name }}</strong>
+                    {% if ct.is_primary %}<span class="badge text-bg-primary">Principal</span>{% endif %}
+                    {% if not ct.active %}<span class="badge text-bg-secondary">Inactivo</span>{% endif %}
+                    {% if ct.anonymized_at %}<span class="badge text-bg-warning">Anonimizado</span>{% endif %}
+                    <div class="small text-muted">{{ ct.job_title }}{% if ct.address_label %}{{ ct.job_title ? ' · ' }}{{ ct.address_label }}{% endif %}</div>
+                    <div class="small">
+                        {% for e in ids.email ?? [] %}<span class="me-2"><i class="bi bi-envelope"></i> {{ e }}</span>{% endfor %}
+                        {% for p in ids.phone ?? [] %}<span class="me-2"><i class="bi bi-telephone"></i> {{ p }}</span>{% endfor %}
+                    </div>
+                    {% if ct.notes %}<div class="small text-muted mt-1">{{ ct.notes|nl2br_safe }}</div>{% endif %}
+                </div>
+                <div class="d-flex gap-1 align-items-start flex-wrap">
+                    {% if can('gdpr.manage') %}
+                    <form method="post" action="/contactos/{{ ct.id }}/exportar">{{ csrf_field() }}<button class="btn btn-sm btn-outline-secondary" title="Exportar sus datos (RGPD)"><i class="bi bi-download"></i></button></form>
+                    {% if not ct.anonymized_at %}
+                    <form method="post" action="/contactos/{{ ct.id }}/anonimizar" data-confirm="Se anonimizarán de forma irreversible el nombre, correos, teléfonos y mensajes de este contacto. ¿Continuar?">{{ csrf_field() }}<button class="btn btn-sm btn-outline-warning" title="Anonimizar (RGPD)"><i class="bi bi-incognito"></i></button></form>
+                    {% endif %}
+                    {% endif %}
+                    {% if can('clients.manage') %}
+                    <form method="post" action="/clientes/{{ c.id }}/contactos/{{ ct.id }}/eliminar" data-confirm="Se eliminará el contacto. Sus correos y teléfonos dejarán de identificarle.">{{ csrf_field() }}<button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button></form>
+                    {% endif %}
+                </div>
+            </div>
+            {% if can('clients.manage') %}
+            <details class="mt-2"><summary class="small text-primary">Editar</summary><div class="pt-2">{{ s.contact_form(c, addresses, ct, ids) }}</div></details>
+            {% endif %}
+        </li>
+    {% else %}
+        <li class="list-group-item text-muted small">Sin contactos.</li>
+    {% endfor %}
+    </ul>
+    {% if can('clients.manage') %}
+    <div class="card-footer"><details {{ contacts is empty ? 'open' }}><summary class="small text-primary">Añadir contacto</summary><div class="pt-2">{{ s.contact_form(c, addresses, null, {}) }}</div></details></div>
+    {% endif %}
+    </div>
+</div>
+
+<div class="col-lg-4">
+    <div class="card mb-3"><div class="card-header">Datos</div><div class="card-body small">
+        <dl class="row mb-0">
+            <dt class="col-5">Tipo</dt><dd class="col-7">{{ c.client_type == 'company' ? 'Empresa' : 'Particular' }}</dd>
+            <dt class="col-5">Teléfono</dt><dd class="col-7">{{ c.phone ?: '—' }}</dd>
+            <dt class="col-5">Correo</dt><dd class="col-7 text-break">{{ c.email ?: '—' }}</dd>
+            <dt class="col-5">Alta</dt><dd class="col-7">{{ c.registered_on|dia }}</dd>
+            <dt class="col-5">SLA</dt><dd class="col-7">{{ policy ?: 'Predeterminado' }}</dd>
+        </dl>
+        {% if c.internal_notes %}<hr><div class="text-muted">{{ c.internal_notes|nl2br_safe }}</div>{% endif %}
+    </div></div>
+
+    <div class="card mb-3" id="direcciones"><div class="card-header">Sedes y direcciones</div>
+    <ul class="list-group list-group-flush">
+    {% for a in addresses %}
+        <li class="list-group-item small">
+            <div class="d-flex justify-content-between"><strong>{{ a.label }}{% if a.is_primary %} <span class="badge text-bg-primary">Principal</span>{% endif %}</strong>
+            {% if can('clients.manage') %}<form method="post" action="/clientes/{{ c.id }}/direcciones/{{ a.id }}/eliminar" data-confirm="¿Eliminar esta dirección?">{{ csrf_field() }}<button class="btn btn-link btn-sm text-danger p-0" title="Eliminar"><i class="bi bi-x-lg"></i></button></form>{% endif %}</div>
+            <div>{{ a.address_line }}</div><div class="text-muted">{{ a.postal_code }} {{ a.city }}{% if a.province %} ({{ a.province }}){% endif %}{% if a.country_code != 'ES' %} · {{ a.country_code }}{% endif %}</div>
+        </li>
+    {% else %}
+        <li class="list-group-item small text-muted">Sin direcciones.</li>
+    {% endfor %}
+    </ul>
+    {% if can('clients.manage') %}
+    <div class="card-footer"><details><summary class="small text-primary">Añadir dirección</summary>
+        <form method="post" action="/clientes/{{ c.id }}/direcciones" class="row g-2 pt-2">{{ csrf_field() }}
+            <div class="col-12"><input class="form-control form-control-sm" name="label" maxlength="80" required placeholder="Nombre (Sede central, Almacén…)" aria-label="Nombre de la sede"></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="address_line" maxlength="200" required placeholder="Dirección" aria-label="Dirección"></div>
+            <div class="col-4"><input class="form-control form-control-sm" name="postal_code" maxlength="10" placeholder="C. P." aria-label="Código postal"></div>
+            <div class="col-8"><input class="form-control form-control-sm" name="city" maxlength="100" placeholder="Localidad" aria-label="Localidad"></div>
+            <div class="col-8"><input class="form-control form-control-sm" name="province" maxlength="100" placeholder="Provincia" aria-label="Provincia"></div>
+            <div class="col-4"><input class="form-control form-control-sm" name="country_code" maxlength="2" value="ES" aria-label="País"></div>
+            <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" id="addr_pr" name="is_primary" value="1"><label class="form-check-label small" for="addr_pr">Principal</label></div>
+            <div class="col-12"><button class="btn btn-sm btn-primary">Guardar dirección</button></div>
+        </form></details></div>
+    {% endif %}
+    </div>
+
+    <div class="card mb-3" id="dominios"><div class="card-header">Dominios de correo</div><div class="card-body small">
+        <p class="text-muted mb-2">Los correos de remitentes desconocidos de estos dominios se asocian a este cliente.</p>
+        {% for d in domains %}
+            <div class="d-flex justify-content-between align-items-center border-bottom py-1"><span>@{{ d.domain }}</span>
+            {% if can('clients.manage') %}<form method="post" action="/clientes/{{ c.id }}/dominios/{{ d.id }}/quitar">{{ csrf_field() }}<button class="btn btn-link btn-sm text-danger p-0" title="Quitar"><i class="bi bi-x-lg"></i></button></form>{% endif %}</div>
+        {% else %}<div class="text-muted">Ninguno.</div>{% endfor %}
+        {% if can('clients.manage') %}
+        <form method="post" action="/clientes/{{ c.id }}/dominios" class="input-group input-group-sm mt-2">{{ csrf_field() }}
+            <span class="input-group-text">@</span><input class="form-control {{ error('domain') ? 'is-invalid' }}" name="domain" placeholder="empresa.es" required aria-label="Dominio"><button class="btn btn-outline-primary">Añadir</button>
+        </form>
+        {% if error('domain') %}<div class="text-danger small mt-1">{{ error('domain') }}</div>{% endif %}
+        {% endif %}
+    </div></div>
+</div>
+</div>
+{% endblock %}

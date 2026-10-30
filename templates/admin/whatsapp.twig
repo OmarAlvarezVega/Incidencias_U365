@@ -1,0 +1,63 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}WhatsApp{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>WhatsApp Business</h1><div class="subtitle">Integración oficial con la Cloud API de Meta. Estado: {% if enabled %}<span class="badge text-bg-success">Activo</span>{% else %}<span class="badge text-bg-secondary">Desactivado</span>{% endif %}</div></div>
+    {% if has_token %}<form method="post" action="/admin/whatsapp/probar" data-loading>{{ csrf_field() }}<button class="btn btn-outline-primary btn-sm"><i class="bi bi-plug"></i> Probar conexión con Meta</button></form>{% endif %}
+</div>
+{% if new_verify_token %}
+<div class="alert alert-warning">
+    <strong>Token de verificación nuevo.</strong> Cópialo ahora en Meta (WhatsApp › Configuración › Webhook › «Verify token»). No se volverá a mostrar.
+    <div class="input-group input-group-sm mt-2"><input class="form-control font-monospace" id="vt" value="{{ new_verify_token }}" readonly aria-label="Token de verificación"><button type="button" class="btn btn-outline-dark" data-copy="#vt">Copiar</button></div>
+</div>
+{% endif %}
+<div class="row g-3 mb-3">
+    <div class="col-md-3 col-6"><div class="card kpi"><div class="card-body"><div class="kpi-label">Eventos 7 días</div><div class="kpi-value">{{ stats.events_7d }}</div></div></div></div>
+    <div class="col-md-3 col-6"><div class="card kpi"><div class="card-body"><div class="kpi-label">Último evento</div><div class="kpi-value fs-6">{{ stats.last_event ? stats.last_event|slice(0, 19)|hace : 'Nunca' }}</div></div></div></div>
+    <div class="col-md-3 col-6"><div class="card kpi"><div class="card-body"><div class="kpi-label">Eventos con error</div><div class="kpi-value {{ stats.failed > 0 ? 'text-danger' }}">{{ stats.failed }}</div></div></div></div>
+    <div class="col-md-3 col-6"><div class="card kpi"><div class="card-body"><div class="kpi-label">Envíos fallidos 7 días</div><div class="kpi-value {{ stats.send_failed_7d > 0 ? 'text-danger' }}">{{ stats.send_failed_7d }}</div></div></div></div>
+</div>
+<form method="post" action="/admin/whatsapp" autocomplete="off">
+{{ csrf_field() }}
+<div class="row g-3">
+<div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">Webhook (pegar en Meta)</div><div class="card-body small">
+        <label class="form-label" for="wurl">URL de devolución de llamada</label>
+        <div class="input-group input-group-sm mb-2"><input class="form-control font-monospace" id="wurl" value="{{ webhook_url }}" readonly><button type="button" class="btn btn-outline-secondary" data-copy="#wurl">Copiar</button></div>
+        <div class="mb-2">Token de verificación: {% if has_verify_token %}<span class="text-success">configurado</span>{% else %}<span class="text-warning">se generará al guardar</span>{% endif %}</div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="regenerate_verify_token" value="1" id="rvt"><label class="form-check-label" for="rvt">Generar un token de verificación nuevo al guardar</label></div>
+        <p class="text-muted mt-2 mb-0">Suscribe el campo <code>messages</code>. Cada aviso de Meta se comprueba con la firma X-Hub-Signature-256 y el secreto de la aplicación; los que no cuadran se rechazan.</p>
+    </div></div>
+    <div class="card mb-3"><div class="card-header">Número y credenciales</div><div class="card-body"><div class="row g-3">
+        <div class="col-md-6"><label class="form-label" for="pnid">Phone Number ID</label><input class="form-control {{ error('phone_number_id') ? 'is-invalid' }}" id="pnid" name="phone_number_id" value="{{ old('phone_number_id', number.phone_number_id ?? '') }}" inputmode="numeric">{% if error('phone_number_id') %}<div class="invalid-feedback">{{ error('phone_number_id') }}</div>{% endif %}</div>
+        <div class="col-md-6"><label class="form-label" for="waba">WhatsApp Business Account ID</label><input class="form-control {{ error('waba_id') ? 'is-invalid' }}" id="waba" name="waba_id" value="{{ old('waba_id', number.waba_id ?? '') }}" inputmode="numeric">{% if error('waba_id') %}<div class="invalid-feedback">{{ error('waba_id') }}</div>{% endif %}</div>
+        <div class="col-md-6"><label class="form-label" for="dph">Número visible</label><input class="form-control {{ error('display_phone') ? 'is-invalid' }}" id="dph" name="display_phone" value="{{ old('display_phone', number.display_phone ?? '') }}" placeholder="+34 600 000 000">{% if error('display_phone') %}<div class="invalid-feedback">{{ error('display_phone') }}</div>{% endif %}</div>
+        <div class="col-md-6"><label class="form-label" for="apiv">Versión de la Graph API</label><input class="form-control {{ error('api_version') ? 'is-invalid' }}" id="apiv" name="api_version" value="{{ old('api_version', api_version) }}">{% if error('api_version') %}<div class="invalid-feedback">{{ error('api_version') }}</div>{% endif %}<div class="form-text">Compruébala en developers.facebook.com: Meta retira versiones antiguas.</div></div>
+        <div class="col-12"><label class="form-label" for="tok">Token de acceso (usuario del sistema)</label><input class="form-control" type="password" id="tok" name="access_token" autocomplete="new-password" placeholder="{{ has_token ? '•••••••• guardado — escribe solo para cambiarlo' : 'Token permanente de un usuario del sistema' }}"></div>
+        <div class="col-12"><label class="form-label" for="asec">Secreto de la aplicación de Meta</label><input class="form-control" type="password" id="asec" name="app_secret" autocomplete="new-password" placeholder="{{ has_app_secret ? '•••••••• guardado — escribe solo para cambiarlo' : 'Configuración de la app › Básica › Clave secreta' }}"><div class="form-text">Se guardan cifrados. Nunca llegan al navegador.</div></div>
+    </div></div></div>
+</div>
+<div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">Comportamiento</div><div class="card-body">
+        <label class="form-label" for="amb">Si el contacto tiene varias incidencias abiertas</label>
+        <select class="form-select mb-3" id="amb" name="ambiguity_policy">
+            <option value="ask_customer" {{ ambiguity == 'ask_customer' ? 'selected' }}>Preguntarle con una lista numerada (recomendado)</option>
+            <option value="latest" {{ ambiguity == 'latest' ? 'selected' }}>Añadir el mensaje a la más reciente</option>
+        </select>
+        <div class="fw-semibold small mb-1">Plantilla para escribir fuera de la ventana de 24 h</div>
+        <p class="small text-muted">WhatsApp solo permite mensajes libres durante las 24 h siguientes al último mensaje del cliente. Después hace falta una plantilla aprobada por Meta en tu cuenta.</p>
+        <div class="row g-2">
+            <div class="col-md-7"><label class="form-label small" for="tpln">Nombre de la plantilla en Meta</label><input class="form-control form-control-sm {{ error('tpl_name') ? 'is-invalid' }}" id="tpln" name="tpl_name" value="{{ old('tpl_name', tpl.name ?? '') }}" placeholder="seguimiento_incidencia">{% if error('tpl_name') %}<div class="invalid-feedback">{{ error('tpl_name') }}</div>{% endif %}</div>
+            <div class="col-md-5"><label class="form-label small" for="tpll">Idioma</label><input class="form-control form-control-sm" id="tpll" name="tpl_lang" value="{{ old('tpl_lang', tpl.lang ?? 'es') }}" placeholder="es"></div>
+            <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="tpl_with_text" value="1" id="tplt" {{ (tpl.with_text ?? false) ? 'checked' }}><label class="form-check-label small" for="tplt">La plantilla tiene una variable {{ '{{1}}' }} en el cuerpo donde va el texto de la respuesta</label></div>
+        </div>
+    </div></div>
+    <div class="card mb-3"><div class="card-body">
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="wen" name="enabled" value="1" {{ enabled ? 'checked' }}><label class="form-check-label fw-semibold" for="wen">WhatsApp activo</label></div>
+        <div class="form-text">Desactivado, los avisos de Meta se comprueban y se descartan (se les responde OK para que no reintenten): no se crean incidencias ni se envían mensajes.</div>
+    </div></div>
+</div>
+</div>
+<button class="btn btn-primary">Guardar</button>
+</form>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Ajustes{% endblock %}
+{% macro row(key, fields, values, extra) %}
+{% set name = key|replace({'.': '__'}) %}
+{% set f = fields[key] %}
+<div class="mb-3">
+{% if f[0] == 'bool' %}
+    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="{{ name }}" name="{{ name }}" value="1" {{ values[key] ? 'checked' }}><label class="form-check-label" for="{{ name }}">{{ f[1] }}</label></div>
+{% elseif f[0] == 'int' %}
+    <label class="form-label" for="{{ name }}">{{ f[1] }}</label>
+    <input class="form-control {{ error(name) ? 'is-invalid' }}" style="max-width: 10rem" type="number" id="{{ name }}" name="{{ name }}" min="{{ f[2] }}" max="{{ f[3] }}" value="{{ old(name, values[key]) }}" required>
+    {% if error(name) %}<div class="invalid-feedback">{{ error(name) }}</div>{% endif %}
+{% elseif f[0] == 'string' %}
+    <label class="form-label" for="{{ name }}">{{ f[1] }}</label>
+    <input class="form-control {{ error(name) ? 'is-invalid' }}" id="{{ name }}" name="{{ name }}" maxlength="{{ f[3] }}" value="{{ old(name, values[key]) }}" required>
+    {% if error(name) %}<div class="invalid-feedback">{{ error(name) }}</div>{% endif %}
+{% endif %}
+{% if extra %}<div class="form-text">{{ extra }}</div>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+{% import _self as s %}
+<div class="page-header"><div><h1>Ajustes</h1><div class="subtitle">Correo, WhatsApp, SLA y plantillas tienen su propia pantalla.</div></div></div>
+<form method="post" action="/admin/ajustes">
+{{ csrf_field() }}
+<div class="row g-3">
+<div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">General e incidencias</div><div class="card-body">
+        {{ s.row('company.name', fields, values, 'Aparece en correos y plantillas.') }}
+        <div class="mb-3"><label class="form-label" for="tickets__default_priority">Prioridad predeterminada</label>
+            <select class="form-select" style="max-width: 16rem" id="tickets__default_priority" name="tickets__default_priority">{% for p in priorities %}<option value="{{ p.code }}" {{ values['tickets.default_priority'] == p.code ? 'selected' }}>{{ p.name }}</option>{% endfor %}</select></div>
+        {{ s.row('tickets.auto_close_days', fields, values, 'Días tras «Resuelta» sin respuesta del cliente para pasar a «Cerrada». 0 = nunca.') }}
+        {{ s.row('tickets.ack_email', fields, values, 'Incluye el número de incidencia para que el cliente pueda responder sobre el mismo hilo.') }}
+        {{ s.row('notifications.email_enabled', fields, values, 'Cada empleado elige además qué avisos recibe en su perfil.') }}
+        {{ s.row('workload.default_capacity', fields, values, null) }}
+    </div></div>
+    <div class="card mb-3"><div class="card-header">Copias de seguridad</div><div class="card-body">
+        {{ s.row('backups.auto', fields, values, 'Requiere que la tarea programada (cron) esté configurada en IONOS.') }}
+        {{ s.row('backups.include_files', fields, values, null) }}
+        {{ s.row('backups.keep', fields, values, 'Las más antiguas se borran al crear una nueva.') }}
+    </div></div>
+</div>
+<div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">Seguridad</div><div class="card-body">
+        {{ s.row('security.password_min_length', fields, values, 'Se exige en el siguiente cambio de contraseña de cada persona.') }}
+        {{ s.row('security.session_idle_minutes', fields, values, null) }}
+        {{ s.row('security.login_max_attempts', fields, values, 'Por usuario; además hay un límite por dirección IP.') }}
+        {{ s.row('security.reset_minutes', fields, values, null) }}
+    </div></div>
+    <div class="card mb-3"><div class="card-header">Adjuntos</div><div class="card-body">
+        {{ s.row('uploads.max_mb', fields, values, 'Límite actual de PHP en el servidor: ' ~ php_upload_mb ~ ' MB por archivo y ' ~ php_post_mb ~ ' MB por envío.') }}
+        <label class="form-label">Extensiones permitidas</label>
+        <div class="d-flex flex-wrap gap-2 {{ error('uploads__allowed_extensions') ? 'is-invalid' }}">
+        {% for ext in known_ext %}<div class="form-check form-check-inline me-0 border rounded px-2"><input class="form-check-input" type="checkbox" name="uploads__allowed_extensions[]" value="{{ ext }}" id="ext_{{ ext }}" {{ ext in values['uploads.allowed_extensions'] ? 'checked' }}><label class="form-check-label small" for="ext_{{ ext }}">.{{ ext }}</label></div>{% endfor %}
+        </div>
+        {% if error('uploads__allowed_extensions') %}<div class="text-danger small">{{ error('uploads__allowed_extensions') }}</div>{% endif %}
+        <div class="form-text">Los ejecutables y scripts (php, exe, js, html, svg…) están bloqueados siempre y no aparecen aquí. Además se comprueba el contenido real del archivo.</div>
+    </div></div>
+</div>
+</div>
+<button class="btn btn-primary">Guardar ajustes</button>
+</form>
+{% endblock %}

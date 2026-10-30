@@ -1,0 +1,39 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Equipos{% endblock %}
+{% macro team_form(t, members, staff) %}
+<form method="post" action="{{ t ? '/admin/equipos/' ~ t.id : '/admin/equipos' }}">
+    {{ csrf_field() }}
+    {% set p = t ? 't' ~ t.id : 'new' %}
+    <div class="row g-2 mb-2">
+        <div class="col-md-4"><label class="form-label small required" for="{{ p }}_name">Nombre</label><input class="form-control form-control-sm" id="{{ p }}_name" name="name" maxlength="80" required value="{{ t.name ?? '' }}"></div>
+        <div class="col-md-6"><label class="form-label small" for="{{ p }}_desc">Descripción</label><input class="form-control form-control-sm" id="{{ p }}_desc" name="description" maxlength="255" value="{{ t.description ?? '' }}"></div>
+        {% if t %}<div class="col-md-2 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="active" value="1" id="{{ p }}_act" {{ t.active ? 'checked' }}><label class="form-check-label small" for="{{ p }}_act">Activo</label></div></div>{% else %}<input type="hidden" name="active" value="1">{% endif %}
+    </div>
+    <div class="small fw-semibold mb-1">Miembros</div>
+    <div class="row g-1 mb-2">
+    {% for s in staff %}
+        {% set role = t ? (members[t.id][s.id] ?? '') : '' %}
+        <div class="col-md-4 col-lg-3 d-flex gap-2 align-items-center small border rounded px-2 py-1">
+            <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="members[]" value="{{ s.id }}" id="{{ p }}_m{{ s.id }}" {{ role ? 'checked' }}><label class="form-check-label" for="{{ p }}_m{{ s.id }}">{{ s.name }}</label></div>
+            <div class="form-check mb-0 ms-auto"><input class="form-check-input" type="checkbox" name="leads[]" value="{{ s.id }}" id="{{ p }}_l{{ s.id }}" {{ role == 'lead' ? 'checked' }} title="Coordina"><label class="form-check-label text-muted" for="{{ p }}_l{{ s.id }}">coord.</label></div>
+        </div>
+    {% endfor %}
+    </div>
+    <button class="btn btn-sm btn-primary">{{ t ? 'Guardar equipo' : 'Crear equipo' }}</button>
+</form>
+{% endmacro %}
+{% block content %}
+{% import _self as s %}
+<div class="page-header"><div><h1>Equipos</h1><div class="subtitle">Agrupan empleados. El coordinador ve y reparte las incidencias de su equipo.</div></div></div>
+{% for t in teams %}
+<div class="card mb-3" id="equipo-{{ t.id }}">
+    <div class="card-header d-flex justify-content-between"><span><strong>{{ t.name }}</strong>{% if not t.active %} <span class="badge text-bg-secondary">Inactivo</span>{% endif %}</span><span class="small text-muted">{{ (members[t.id] ?? [])|length }} miembros · {{ t.open_tickets }} incidencias abiertas</span></div>
+    <div class="card-body">
+        <details><summary class="small text-primary">Editar</summary><div class="pt-2">{{ s.team_form(t, members, staff) }}</div></details>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-light">Aún no hay equipos.</div>
+{% endfor %}
+<div class="card"><div class="card-header">Nuevo equipo</div><div class="card-body">{{ s.team_form(null, members, staff) }}</div></div>
+{% endblock %}

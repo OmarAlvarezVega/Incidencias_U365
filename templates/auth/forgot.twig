@@ -1,0 +1,15 @@
+{% extends 'layouts/auth.twig' %}
+{% block title %}Recuperar contraseña{% endblock %}
+{% block content %}
+<h1 class="h5 fw-bold mb-1">Recuperar contraseña</h1>
+<p class="text-muted small mb-4">Te enviaremos un enlace de un solo uso a tu correo corporativo.</p>
+<form method="post" action="/recuperar">
+    {{ csrf_field() }}
+    <div class="mb-3">
+        <label class="form-label" for="email">Correo electrónico</label>
+        <input class="form-control" id="email" name="email" type="email" autocomplete="email" required autofocus>
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Enviar enlace</button>
+</form>
+<div class="text-center mt-3"><a class="small" href="/login">Volver al acceso</a></div>
+{% endblock %}

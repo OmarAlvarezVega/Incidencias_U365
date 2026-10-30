@@ -1,0 +1,12 @@
+{% extends current_user ? 'layouts/app.twig' : 'layouts/auth.twig' %}
+{% block title %}Error {{ status }}{% endblock %}
+{% block content %}
+<div class="{{ current_user ? 'card' : '' }}">
+    <div class="{{ current_user ? 'card-body' : '' }} empty-state">
+        <i class="bi {{ status == 404 ? 'bi-search' : (status == 403 ? 'bi-shield-lock' : 'bi-exclamation-triangle') }}"></i>
+        <h2 class="h5 text-dark">{{ status == 404 ? 'No encontrado' : (status == 403 ? 'Acceso denegado' : 'Algo no ha ido bien') }}</h2>
+        <p class="mb-3">{{ message }}</p>
+        <a class="btn btn-primary btn-sm" href="/">Volver al inicio</a>
+    </div>
+</div>
+{% endblock %}

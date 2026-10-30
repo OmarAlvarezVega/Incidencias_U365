@@ -1,0 +1,25 @@
+# UNIVERS365 Incidencias - raíz web (public/)
+
+# En IONOS compartido no se permiten "Options" ni "Require" en .htaccess
+# (error 500 visto el 30/10/2026). Todo se hace con mod_rewrite y mod_headers.
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Forzar HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Ficheros ocultos (.git, .env...) nunca
+    RewriteRule (^|/)\. - [F,L]
+
+    # Solo index.php puede ejecutarse como PHP en esta carpeta
+    RewriteCond %{REQUEST_URI} \.(php|phtml|phar|php[0-9])$ [NC]
+    RewriteRule !^index\.php$ - [F,L]
+
+    # Recursos estáticos existentes se sirven tal cual; el resto va al controlador
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>

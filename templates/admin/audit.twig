@@ -1,0 +1,38 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}Auditoría{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Registro de auditoría</h1><div class="subtitle">Quién hizo qué y cuándo. Los registros se encadenan con hash: cualquier modificación o borrado se detecta.</div></div>
+    <form method="post" action="/admin/auditoria/verificar" data-loading>{{ csrf_field() }}<button class="btn btn-outline-primary btn-sm"><i class="bi bi-shield-check"></i> Verificar integridad</button></form>
+</div>
+{% if verification %}<div class="alert alert-{{ verification.ok ? 'success' : 'danger' }} small">{{ verification.message }} <span class="text-muted">({{ verification.at }})</span></div>{% endif %}
+<form class="card card-body mb-3 py-2" method="get" action="/admin/auditoria">
+    <div class="row g-2 align-items-end small">
+        <div class="col-6 col-md-3"><label class="form-label mb-0" for="aac">Acción</label><input class="form-control form-control-sm" id="aac" name="accion" value="{{ f.accion }}" list="acciones" placeholder="auth., ticket., user.…"><datalist id="acciones">{% for a in actions %}<option value="{{ a }}">{% endfor %}</datalist></div>
+        <div class="col-6 col-md-2"><label class="form-label mb-0" for="aus">Usuario</label><select class="form-select form-select-sm" id="aus" name="usuario"><option value="">Todos</option>{% for u in users %}<option value="{{ u.id }}" {{ f.usuario == u.id ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-md-2"><label class="form-label mb-0" for="aen">Entidad</label><input class="form-control form-control-sm" id="aen" name="entidad" value="{{ f.entidad }}" placeholder="ticket, user, client…"></div>
+        <div class="col-6 col-md-1"><label class="form-label mb-0" for="aid">Id</label><input class="form-control form-control-sm" id="aid" name="id" value="{{ f.id }}"></div>
+        <div class="col-6 col-md-2"><label class="form-label mb-0" for="ade">Desde</label><input class="form-control form-control-sm" type="date" id="ade" name="desde" value="{{ f.desde }}"></div>
+        <div class="col-6 col-md-1"><label class="form-label mb-0" for="aha">Hasta</label><input class="form-control form-control-sm" type="date" id="aha" name="hasta" value="{{ f.hasta }}"></div>
+        <div class="col-12 col-md-1 d-grid"><button class="btn btn-sm btn-primary">Filtrar</button></div>
+    </div>
+</form>
+<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+    <thead><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Sobre</th><th>Detalles</th><th>IP</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+        <td class="text-nowrap">{{ r.occurred_at|slice(0, 19)|fecha }}</td>
+        <td>{{ r.actor ?: (r.actor_type == 'system' ? 'Sistema' : (r.actor_type == 'integration' ? 'Integración' : 'Anónimo')) }}</td>
+        <td><code>{{ r.action }}</code></td>
+        <td class="text-nowrap">{% if r.entity_type == 'ticket' %}<a href="/incidencias/{{ r.entity_id }}">incidencia #{{ r.entity_id }}</a>{% elseif r.entity_type == 'client' %}<a href="/clientes/{{ r.entity_id }}">cliente #{{ r.entity_id }}</a>{% elseif r.entity_type == 'user' %}<a href="/empleados/{{ r.entity_id }}">usuario #{{ r.entity_id }}</a>{% elseif r.entity_type %}{{ r.entity_type }} #{{ r.entity_id }}{% endif %}</td>
+        <td class="text-break" style="max-width: 28rem">{% if r.details %}{% for k, v in r.details|json_decode %}<span class="me-2"><span class="text-muted">{{ k }}:</span> {{ v is iterable ? v|json_encode(constant('JSON_UNESCAPED_UNICODE')) : (v is same as(true) ? 'sí' : (v is same as(false) ? 'no' : v)) }}</span>{% endfor %}{% endif %}</td>
+        <td class="text-muted">{{ r.ip }}</td>
+        <td>{% if r.chain_seq %}<i class="bi bi-link-45deg text-success" title="Sellado (eslabón {{ r.chain_seq }})"></i>{% else %}<i class="bi bi-hourglass text-muted" title="Pendiente de sellar"></i>{% endif %}</td>
+    </tr>
+    {% else %}<tr><td colspan="7" class="empty-state"><i class="bi bi-journal"></i>Sin registros con estos filtros.</td></tr>{% endfor %}
+    </tbody>
+</table></div></div>
+{{ m.pagination(total, page, per) }}
+{% endblock %}

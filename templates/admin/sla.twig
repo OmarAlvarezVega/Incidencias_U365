@@ -1,0 +1,104 @@
+{% extends 'layouts/app.twig' %}
+{% import 'partials/macros.twig' as m %}
+{% block title %}SLA{% endblock %}
+{% macro policy_form(p, priorities, targets, calendars) %}
+<form method="post" action="/admin/sla/politica">
+    {{ csrf_field() }}{% if p %}<input type="hidden" name="id" value="{{ p.id }}">{% endif %}
+    {% set k = p ? p.id : 'n' %}
+    <div class="row g-2 mb-3">
+        <div class="col-md-4"><label class="form-label small required" for="pn{{ k }}">Nombre</label><input class="form-control form-control-sm" id="pn{{ k }}" name="name" maxlength="80" required value="{{ p.name ?? '' }}"></div>
+        <div class="col-md-4"><label class="form-label small" for="pc{{ k }}">Calendario laboral</label><select class="form-select form-select-sm" id="pc{{ k }}" name="calendar_id">{% for c in calendars %}<option value="{{ c.id }}" {{ p and p.calendar_id == c.id ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="col-md-4 d-flex flex-wrap gap-3 align-items-end small">
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="active" value="1" id="pa{{ k }}" {{ p and p.active ? 'checked' }}><label class="form-check-label" for="pa{{ k }}">Activa</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="is_default" value="1" id="pd{{ k }}" {{ p and p.is_default ? 'checked' }}><label class="form-check-label" for="pd{{ k }}">Predeterminada</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="pause_when_pending" value="1" id="pp{{ k }}" {{ not p or p.pause_when_pending ? 'checked' }}><label class="form-check-label" for="pp{{ k }}">Pausar en espera</label></div>
+        </div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm align-middle small">
+        <thead><tr><th>Prioridad</th><th>Primera respuesta</th><th>Resolución</th><th>Cómputo</th><th>Avisar al</th></tr></thead>
+        <tbody>
+        {% for pr in priorities %}
+            {% set t = p ? (targets[p.id][pr.id] ?? null) : null %}
+            <tr>
+                <td>{{ m.priority(pr.name, pr.color) }}</td>
+                <td class="text-nowrap"><input class="form-control form-control-sm d-inline-block" style="width: 4.5rem" type="number" min="0" name="target[{{ pr.id }}][fr_h]" value="{{ t ? (t.first_response_minutes // 60) : '' }}" aria-label="Horas de primera respuesta"> h
+                    <input class="form-control form-control-sm d-inline-block" style="width: 4rem" type="number" min="0" max="59" name="target[{{ pr.id }}][fr_m]" value="{{ t ? (t.first_response_minutes % 60) : '' }}" aria-label="Minutos de primera respuesta"> min</td>
+                <td class="text-nowrap"><input class="form-control form-control-sm d-inline-block" style="width: 4.5rem" type="number" min="0" name="target[{{ pr.id }}][res_h]" value="{{ t and t.resolution_minutes ? (t.resolution_minutes // 60) : '' }}" aria-label="Horas de resolución"> h
+                    <input class="form-control form-control-sm d-inline-block" style="width: 4rem" type="number" min="0" max="59" name="target[{{ pr.id }}][res_m]" value="{{ t and t.resolution_minutes ? (t.resolution_minutes % 60) : '' }}" aria-label="Minutos de resolución"> min</td>
+                <td><select class="form-select form-select-sm" name="target[{{ pr.id }}][mode]" aria-label="Cómputo"><option value="business" {{ not t or t.time_mode == 'business' ? 'selected' }}>Laborable</option><option value="calendar" {{ t and t.time_mode == 'calendar' ? 'selected' }}>Natural (24x7)</option></select></td>
+                <td class="text-nowrap"><input class="form-control form-control-sm d-inline-block" style="width: 4.5rem" type="number" min="1" max="99" name="target[{{ pr.id }}][warn]" value="{{ t.warn_at_percent ?? 80 }}" aria-label="Porcentaje de aviso"> %</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    <div class="form-text mb-2">Deja vacía la primera respuesta para no aplicar SLA a esa prioridad. Resolución vacía = sin objetivo de resolución.</div>
+    <button class="btn btn-sm btn-primary">{{ p ? 'Guardar política' : 'Crear política' }}</button>
+</form>
+{% endmacro %}
+{% block content %}
+{% import _self as s %}
+<div class="page-header"><div><h1>SLA</h1><div class="subtitle">Tiempos objetivo por prioridad, horario laboral y festivos (Europe/Madrid).</div></div></div>
+{% if no_active %}<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> No hay ninguna política activa: las incidencias no tienen vencimientos de SLA. Revisa los objetivos y marca «Activa».</div>{% endif %}
+
+{% for p in policies %}
+<div class="card mb-3" id="politica-{{ p.id }}">
+    <div class="card-header d-flex justify-content-between flex-wrap gap-2"><span><strong>{{ p.name }}</strong>
+        {% if p.is_default %}<span class="badge text-bg-primary">Predeterminada</span>{% endif %}
+        {% if p.active %}<span class="badge text-bg-success">Activa</span>{% else %}<span class="badge text-bg-secondary">Inactiva</span>{% endif %}</span>
+        <span class="small text-muted">{{ p.calendar }} · {{ p.clients }} clientes con esta política específica</span></div>
+    <div class="card-body">{{ s.policy_form(p, priorities, targets, calendars) }}</div>
+</div>
+{% endfor %}
+<details class="card mb-4"><summary class="card-header">Nueva política (para clientes con contrato distinto)</summary><div class="card-body">{{ s.policy_form(null, priorities, targets, calendars) }}</div></details>
+
+<h2 class="h5" id="calendarios">Horario laboral</h2>
+{% set days = {1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'} %}
+{% for c in calendars %}
+<div class="card mb-3"><div class="card-body">
+<form method="post" action="/admin/sla/calendario">{{ csrf_field() }}<input type="hidden" name="id" value="{{ c.id }}">
+    <div class="mb-2" style="max-width: 24rem"><label class="form-label small" for="cn{{ c.id }}">Nombre</label><input class="form-control form-control-sm" id="cn{{ c.id }}" name="name" value="{{ c.name }}" maxlength="80" required></div>
+    <div class="row g-2">
+    {% for n, label in days %}
+        <div class="col-md-6 col-lg-4"><label class="form-label small mb-0" for="h{{ c.id }}_{{ n }}">{{ label }}</label>
+            <input class="form-control form-control-sm font-monospace" id="h{{ c.id }}_{{ n }}" name="hours[{{ n }}]" value="{{ (hours[c.id][n] ?? [])|join(', ') }}" placeholder="Cerrado"></div>
+    {% endfor %}
+    </div>
+    <div class="form-text mb-2">Tramos separados por comas, por ejemplo <code>09:00-14:00, 15:00-18:00</code>. Vacío = no laborable.</div>
+    <button class="btn btn-sm btn-primary">Guardar horario</button>
+</form>
+</div></div>
+{% endfor %}
+
+<h2 class="h5" id="festivos">Festivos</h2>
+<div class="row g-3 mb-4">
+{% for c in calendars %}
+<div class="col-lg-6"><div class="card h-100"><div class="card-header">{{ c.name }}</div>
+    <ul class="list-group list-group-flush small" style="max-height: 18rem; overflow:auto">
+    {% for h in holidays|filter(h => h.calendar_id == c.id) %}
+        <li class="list-group-item d-flex justify-content-between align-items-center py-1"><span>{{ h.holiday_date|dia }} · {{ h.name }}</span>
+            <form method="post" action="/admin/sla/festivos">{{ csrf_field() }}<input type="hidden" name="calendar_id" value="{{ c.id }}"><input type="hidden" name="delete_id" value="{{ h.id }}"><button class="btn btn-link btn-sm text-danger p-0" title="Eliminar"><i class="bi bi-x-lg"></i></button></form></li>
+    {% else %}<li class="list-group-item text-muted">No hay festivos cargados. Sin ellos, el SLA laborable cuenta esos días como laborables.</li>{% endfor %}
+    </ul>
+    <div class="card-footer"><form method="post" action="/admin/sla/festivos">{{ csrf_field() }}<input type="hidden" name="calendar_id" value="{{ c.id }}">
+        <label class="form-label small" for="hl{{ c.id }}">Añadir festivos (uno por línea)</label>
+        <textarea class="form-control form-control-sm font-monospace mb-2" id="hl{{ c.id }}" name="lines" rows="4" placeholder="01/01/2027 Año Nuevo&#10;06/01/2027 Epifanía del Señor"></textarea>
+        <button class="btn btn-sm btn-outline-primary">Añadir</button>
+        <div class="form-text">Incluye los nacionales, autonómicos y locales que apliquen a tu oficina. No se cargan solos: cambian cada año.</div>
+    </form></div>
+</div></div>
+{% endfor %}
+</div>
+
+<h2 class="h5" id="simulador">Simulador</h2>
+<div class="card mb-3"><div class="card-body">
+    <form method="post" action="/admin/sla/simular" class="row g-2 align-items-end">{{ csrf_field() }}
+        <div class="col-md-3"><label class="form-label small" for="ss">Inicio</label><input class="form-control form-control-sm" type="datetime-local" id="ss" name="start" required value="{{ 'now'|date('Y-m-d\\TH:i', 'Europe/Madrid') }}"></div>
+        <div class="col-md-2"><label class="form-label small" for="sh">Horas</label><input class="form-control form-control-sm" type="number" id="sh" name="hours" min="0" value="8"></div>
+        <div class="col-md-2"><label class="form-label small" for="sm">Minutos</label><input class="form-control form-control-sm" type="number" id="sm" name="minutes" min="0" max="59" value="0"></div>
+        <div class="col-md-2"><label class="form-label small" for="smo">Cómputo</label><select class="form-select form-select-sm" id="smo" name="mode"><option value="business">Laborable</option><option value="calendar">Natural</option></select></div>
+        <div class="col-md-2"><label class="form-label small" for="sc">Calendario</label><select class="form-select form-select-sm" id="sc" name="calendar_id">{% for c in calendars %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="col-md-1 d-grid"><button class="btn btn-sm btn-primary">Calcular</button></div>
+    </form>
+    {% if simulation %}<div class="alert alert-info small mt-3 mb-0">Desde <strong>{{ simulation.start }}</strong> + {{ simulation.duration }} ({{ simulation.mode }}) → vence el <strong>{{ simulation.due }}</strong>.</div>{% endif %}
+</div></div>
+{% endblock %}
