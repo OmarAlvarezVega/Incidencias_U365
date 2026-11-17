@@ -123,7 +123,7 @@ tarea.
 
 **Opción B, disparador HTTPS** (planes sin cron):
 
-1. Administración → Procesos → **Generar clave del cron**. Se muestra una sola
+1. Administración → Procesos → **Activar disparador HTTP**. Se muestra una sola
    vez; solo se guarda su hash.
 2. Configura un servicio externo de cron (el que uses) para hacer cada 5
    minutos:
