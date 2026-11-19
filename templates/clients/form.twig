@@ -1,0 +1,61 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}{{ c ? 'Editar cliente' : 'Nuevo cliente' }}{% endblock %}
+{% macro field(name, label, value, opts) %}
+<div class="{{ opts.col ?? 'col-md-6' }}">
+    <label class="form-label {{ opts.required ?? false ? 'required' }}" for="f_{{ name }}">{{ label }}</label>
+    <input class="form-control {{ error(name) ? 'is-invalid' }}" id="f_{{ name }}" name="{{ name }}" type="{{ opts.type ?? 'text' }}" value="{{ old(name, value) }}" {{ opts.required ?? false ? 'required' }} {% if opts.max is defined %}maxlength="{{ opts.max }}"{% endif %}>
+    {% if error(name) %}<div class="invalid-feedback">{{ error(name) }}</div>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+{% import _self as f %}
+<div class="page-header"><div><h1>{{ c ? 'Editar ' ~ (c.trade_name ?: c.legal_name) : 'Nuevo cliente' }}</h1>{% if c %}<div class="subtitle">{{ c.code }}</div>{% endif %}</div></div>
+<form method="post" action="{{ c ? '/clientes/' ~ c.id : '/clientes' }}">
+{{ csrf_field() }}
+<div class="card mb-3"><div class="card-header">Datos del cliente</div><div class="card-body">
+<div class="row g-3">
+    <div class="col-md-3">
+        <label class="form-label required" for="f_client_type">Tipo</label>
+        {% set ct = old('client_type', c.client_type ?? 'company') %}
+        <select class="form-select" id="f_client_type" name="client_type"><option value="company" {{ ct == 'company' ? 'selected' }}>Empresa</option><option value="individual" {{ ct == 'individual' ? 'selected' }}>Particular</option></select>
+    </div>
+    {{ f.field('legal_name', 'Razón social o nombre completo', c.legal_name ?? '', {required: true, max: 200, col: 'col-md-5'}) }}
+    {{ f.field('tax_id', 'NIF / CIF', c.tax_id ?? '', {max: 20, col: 'col-md-4'}) }}
+    {{ f.field('trade_name', 'Nombre comercial', c.trade_name ?? '', {max: 200}) }}
+    {{ f.field('registered_on', 'Fecha de alta', c.registered_on ?? 'now'|date('Y-m-d', 'Europe/Madrid'), {type: 'date', col: 'col-md-3'}) }}
+    <div class="col-md-3">
+        <label class="form-label required" for="f_status">Estado</label>
+        {% set st = old('status', c.status ?? 'active') %}
+        <select class="form-select" id="f_status" name="status"><option value="active" {{ st == 'active' ? 'selected' }}>Activo</option><option value="inactive" {{ st == 'inactive' ? 'selected' }}>Inactivo</option></select>
+    </div>
+    {{ f.field('phone', 'Teléfono', c.phone ?? '', {type: 'tel', max: 30}) }}
+    {{ f.field('email', 'Correo general', c.email ?? '', {type: 'email', max: 254}) }}
+    <div class="col-md-6">
+        <label class="form-label" for="f_sla">Política de SLA</label>
+        {% set sp = old('sla_policy_id', c.sla_policy_id ?? '') ~ '' %}
+        <select class="form-select" id="f_sla" name="sla_policy_id"><option value="">La predeterminada</option>
+        {% for p in policies %}<option value="{{ p.id }}" {{ sp == p.id ~ '' ? 'selected' }}>{{ p.name }}{{ p.active ? '' : ' (inactiva)' }}</option>{% endfor %}</select>
+        <div class="form-text">Solo si este cliente tiene un acuerdo distinto al general.</div>
+    </div>
+    <div class="col-12">
+        <label class="form-label" for="f_notes">Notas internas</label>
+        <textarea class="form-control" id="f_notes" name="internal_notes" rows="3">{{ old('internal_notes', c.internal_notes ?? '') }}</textarea>
+        <div class="form-text">Solo las ve el equipo.</div>
+    </div>
+</div>
+</div></div>
+{% if not c %}
+<div class="card mb-3"><div class="card-header">Primer contacto (opcional)</div><div class="card-body">
+<div class="row g-3">
+    {{ f.field('contact_first_name', 'Nombre', '', {max: 80, col: 'col-md-4'}) }}
+    {{ f.field('contact_last_name', 'Apellidos', '', {max: 120, col: 'col-md-4'}) }}
+    {{ f.field('contact_job_title', 'Cargo', '', {max: 100, col: 'col-md-4'}) }}
+    {{ f.field('contact_email', 'Correo', '', {type: 'email', max: 254}) }}
+    {{ f.field('contact_phone', 'Teléfono / WhatsApp', '', {type: 'tel', max: 30}) }}
+    <div class="col-12 form-text mt-1">El correo y el teléfono del contacto sirven para reconocerle cuando escriba por correo o WhatsApp.</div>
+</div>
+</div></div>
+{% endif %}
+<div class="d-flex gap-2"><button class="btn btn-primary">{{ c ? 'Guardar cambios' : 'Crear cliente' }}</button><a class="btn btn-light" href="{{ c ? '/clientes/' ~ c.id : '/clientes' }}">Cancelar</a></div>
+</form>
+{% endblock %}

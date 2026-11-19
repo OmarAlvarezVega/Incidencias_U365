@@ -1,0 +1,10 @@
+{% extends 'layouts/auth.twig' %}
+{% block title %}Nueva contraseña{% endblock %}
+{% block content %}
+<h1 class="h5 fw-bold mb-3">Elige una contraseña nueva</h1>
+<form method="post" action="/restablecer/{{ token }}">
+    {{ csrf_field() }}
+    {% include 'partials/password_fields.twig' %}
+    <button class="btn btn-primary w-100" type="submit">Guardar contraseña</button>
+</form>
+{% endblock %}

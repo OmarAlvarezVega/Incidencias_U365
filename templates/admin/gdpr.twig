@@ -1,0 +1,35 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}RGPD{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Protección de datos</h1><div class="subtitle">Registro de solicitudes de derechos. La exportación y la anonimización se hacen desde la ficha del contacto.</div></div></div>
+<div class="card mb-3"><div class="card-header">Registrar solicitud</div><div class="card-body">
+<form method="post" action="/admin/rgpd" class="row g-2 align-items-end">{{ csrf_field() }}
+    <div class="col-md-2"><label class="form-label small required" for="gt">Derecho</label><select class="form-select form-select-sm" id="gt" name="request_type">{% for k, v in types %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label small required" for="gs">Interesado e identificación</label><input class="form-control form-control-sm {{ error('subject_reference') ? 'is-invalid' }}" id="gs" name="subject_reference" maxlength="254" required placeholder="Nombre, correo y cómo se verificó su identidad"></div>
+    <div class="col-md-2"><label class="form-label small" for="gc">Nº de contacto (opcional)</label><input class="form-control form-control-sm {{ error('contact_id') ? 'is-invalid' }}" id="gc" name="contact_id" inputmode="numeric"></div>
+    <div class="col-md-2"><label class="form-label small required" for="gr">Recibida el</label><input class="form-control form-control-sm" type="date" id="gr" name="received_at" required value="{{ 'now'|date('Y-m-d', 'Europe/Madrid') }}"></div>
+    <div class="col-md-2 d-grid"><button class="btn btn-sm btn-primary">Registrar</button></div>
+</form>
+<div class="form-text">El plazo de respuesta es de un mes desde la recepción, prorrogable dos meses más avisando al interesado.</div>
+</div></div>
+<div class="card"><div class="table-responsive"><table class="table align-middle mb-0 small">
+    <thead><tr><th>Derecho</th><th>Interesado</th><th>Recibida</th><th>Vence</th><th>Estado y resolución</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    {% set open = r.status in ['received','in_progress'] %}
+    <tr class="{{ open and r.due_at < now ? 'table-danger' }}">
+        <td>{{ types[r.request_type] }}</td>
+        <td class="text-break">{{ r.subject_reference }}{% if r.contact_id %}<div><a href="/clientes/{{ r.client_id }}#contactos">{{ r.contact }}</a> · {{ r.client }}</div>{% endif %}</td>
+        <td class="text-nowrap">{{ r.received_at|dia }}</td>
+        <td class="text-nowrap {{ open and r.due_at < now ? 'text-danger fw-semibold' }}">{{ r.due_at|dia }}</td>
+        <td style="min-width: 18rem"><form method="post" action="/admin/rgpd/{{ r.id }}" class="d-flex flex-column gap-1">{{ csrf_field() }}
+            <div class="d-flex gap-2"><select class="form-select form-select-sm" name="status" aria-label="Estado">{% for k, v in statuses %}<option value="{{ k }}" {{ r.status == k ? 'selected' }}>{{ v }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-primary">Guardar</button></div>
+            <textarea class="form-control form-control-sm" name="resolution_notes" rows="2" placeholder="Qué se hizo y cuándo se comunicó" aria-label="Resolución">{{ r.resolution_notes }}</textarea>
+            {% if open %}<div class="form-check"><input class="form-check-input" type="checkbox" name="extend" value="1" id="ext{{ r.id }}"><label class="form-check-label" for="ext{{ r.id }}">Aplicar prórroga (3 meses desde la recepción)</label></div>{% endif %}
+            {% if r.handler %}<div class="text-muted">Gestiona: {{ r.handler }}{% if r.closed_at %} · cerrada {{ r.closed_at|dia }}{% endif %}</div>{% endif %}
+        </form></td>
+    </tr>
+    {% else %}<tr><td colspan="5" class="empty-state"><i class="bi bi-person-lock"></i>No hay solicitudes registradas.</td></tr>{% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

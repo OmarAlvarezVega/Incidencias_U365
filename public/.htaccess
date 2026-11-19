@@ -1,0 +1,28 @@
+# UNIVERS365 Incidencias - raíz web (public/)
+# Sin "Options" ni "Require" (dan error 500 en IONOS). Las reglas miran la
+# petición original (THE_REQUEST), no la ruta interna, porque en IONOS la ruta
+# física no coincide con DOCUMENT_ROOT.
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Forzar HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Ficheros ocultos (.git, .env...) nunca
+    RewriteCond %{THE_REQUEST} \s/+([^?\s]*/)?\. [NC]
+    RewriteRule ^ - [F,L]
+
+    # Solo index.php puede ejecutarse como PHP
+    RewriteCond %{THE_REQUEST} \s/+[^?\s]*\.(php|phtml|phar|php[0-9])[\s?] [NC]
+    RewriteCond %{THE_REQUEST} !\s/+index\.php[\s?] [NC]
+    RewriteRule ^ - [F,L]
+
+    # Ficheros existentes se sirven tal cual; el resto va al controlador
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>

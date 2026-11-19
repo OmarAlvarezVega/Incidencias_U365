@@ -1,0 +1,40 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Copias de seguridad{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Copias de seguridad</h1><div class="subtitle">Copia automática: {{ auto ? 'activada (diaria)' : 'desactivada' }} · se conservan {{ keep }}{% if free %} · espacio libre {{ free|bytes }}{% endif %}</div></div>
+    <form method="post" action="/admin/copias" class="d-flex gap-2" data-loading>{{ csrf_field() }}
+        <select class="form-select form-select-sm w-auto" name="kind" aria-label="Tipo de copia"><option value="full">Base de datos y adjuntos</option><option value="database">Solo base de datos</option><option value="files">Solo adjuntos</option></select>
+        <button class="btn btn-primary btn-sm"><i class="bi bi-hdd"></i> Crear copia ahora</button></form>
+</div>
+<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> Estas copias se guardan en el mismo alojamiento. Descárgalas con regularidad y guárdalas en otro sitio. La restauración se hace por línea de comandos y siempre en una base de datos nueva: consulta el manual de recuperación.</div>
+<div class="card mb-3"><div class="card-header">Ficheros disponibles</div><div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+    <tbody>
+    {% for f in files %}
+    <tr>
+        <td><i class="bi bi-{{ f.name ends with '.zip' ? 'file-zip' : 'database' }}"></i> <span class="font-monospace">{{ f.name }}</span></td>
+        <td class="text-end">{{ f.size|bytes }}</td>
+        <td>{{ f.mtime|date('d/m/Y H:i', 'Europe/Madrid') }}</td>
+        <td class="text-end text-nowrap">
+            <form method="post" action="/admin/copias/verificar" class="d-inline" data-loading>{{ csrf_field() }}<input type="hidden" name="name" value="{{ f.name }}"><button class="btn btn-sm btn-outline-secondary">Verificar</button></form>
+            <form method="post" action="/admin/copias/descargar" class="d-inline">{{ csrf_field() }}<input type="hidden" name="name" value="{{ f.name }}"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Descargar</button></form>
+        </td>
+    </tr>
+    {% else %}<tr><td class="empty-state"><i class="bi bi-hdd"></i>Todavía no hay copias.</td></tr>{% endfor %}
+    </tbody>
+</table></div></div>
+<div class="card"><div class="card-header">Historial</div><div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+    <thead><tr><th>Inicio</th><th>Tipo</th><th>Estado</th><th>Tamaño</th><th>Verificada</th></tr></thead>
+    <tbody>
+    {% for r in runs %}
+    <tr>
+        <td>{{ r.started_at|fecha }}</td>
+        <td>{{ {full: 'Completa', database: 'Base de datos', files: 'Adjuntos'}[r.kind] }}</td>
+        <td>{% if r.status == 'ok' %}<span class="text-success">Correcta</span>{% elseif r.status == 'error' %}<span class="text-danger">Error</span><div class="text-danger text-break">{{ r.error }}</div>{% else %}En curso{% endif %}</td>
+        <td>{{ r.size_bytes ? r.size_bytes|bytes : '' }}</td>
+        <td>{{ r.verified_at ? r.verified_at|fecha : '—' }}</td>
+    </tr>
+    {% else %}<tr><td colspan="5" class="text-muted p-3">Sin ejecuciones.</td></tr>{% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

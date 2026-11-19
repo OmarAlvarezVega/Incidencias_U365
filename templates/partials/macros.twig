@@ -1,0 +1,26 @@
+{% macro status(name, color) %}<span class="badge-status" style="background: {{ color|safe_color }}; color: {{ color|safe_color|contrast }}">{{ name }}</span>{% endmacro %}
+
+{% macro priority(name, color) %}<span class="text-nowrap"><span class="priority-dot" style="background: {{ color|safe_color }}"></span>{{ name }}</span>{% endmacro %}
+
+{% macro pagination(total, page, per) %}
+{% set pages = ((total + per - 1) / per)|round(0, 'floor') %}
+{% if pages > 1 %}
+<nav aria-label="Paginación" class="d-flex justify-content-between align-items-center mt-3 small">
+    <span class="text-muted">{{ total|num }} resultados · página {{ page }} de {{ pages }}</span>
+    <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {{ page <= 1 ? 'disabled' }}"><a class="page-link" href="{{ query({page: page - 1}) }}">Anterior</a></li>
+        {% for p in max(1, page - 2)..min(pages, page + 2) %}
+            <li class="page-item {{ p == page ? 'active' }}"><a class="page-link" href="{{ query({page: p}) }}">{{ p }}</a></li>
+        {% endfor %}
+        <li class="page-item {{ page >= pages ? 'disabled' }}"><a class="page-link" href="{{ query({page: page + 1}) }}">Siguiente</a></li>
+    </ul>
+</nav>
+{% elseif total > 0 %}
+<div class="small text-muted mt-3">{{ total|num }} resultado{{ total == 1 ? '' : 's' }}</div>
+{% endif %}
+{% endmacro %}
+
+{% macro sla(row) %}
+{% if row.first_response_breached_at or row.resolution_breached_at %}<span class="badge text-bg-danger" title="SLA incumplido"><i class="bi bi-exclamation-octagon"></i> SLA</span>
+{% elseif row.resolution_due_at or row.first_response_due_at %}<span class="small text-muted" title="Vencimiento SLA"><i class="bi bi-stopwatch"></i> {{ (row.first_response_due_at ?: row.resolution_due_at)|fecha }}</span>{% endif %}
+{% endmacro %}

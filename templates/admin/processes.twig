@@ -1,0 +1,63 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Procesos{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Procesos automáticos</h1><div class="subtitle">Tareas programadas y cola de envíos.</div></div>
+    <form method="post" action="/admin/procesos/ejecutar" data-loading>{{ csrf_field() }}<button class="btn btn-primary btn-sm"><i class="bi bi-play"></i> Ejecutar todo ahora</button></form>
+</div>
+{% if not last_cron %}
+<div class="alert alert-warning small"><strong>La tarea programada no se ha ejecutado nunca.</strong> Sin ella no se lee el correo, no se envían respuestas, no se calculan avisos de SLA ni se hacen copias. Configúrala en IONOS (ver abajo).</div>
+{% elseif last_cron|date('U') < 'now'|date_modify('-15 minutes')|date('U') %}
+<div class="alert alert-danger small">La última ejecución programada fue {{ last_cron|slice(0, 19)|hace }}. Revisa el cron de IONOS.</div>
+{% endif %}
+{% if results %}<div class="alert alert-info small"><strong>Resultado:</strong>{% for t, r in results %}<div><code>{{ t }}</code>: {{ r }}</div>{% endfor %}</div>{% endif %}
+
+<div class="card mb-3"><div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+    <thead><tr><th>Tarea</th><th>Frecuencia</th><th>Última ejecución</th><th>Último éxito</th><th></th></tr></thead>
+    <tbody>
+    {% for t in tasks %}
+    <tr>
+        <td><code>{{ t.code }}</code><div class="text-muted">{{ t.label }}</div></td>
+        <td>{{ t.every == 0 ? 'Cada ejecución' : (t.every >= 1440 ? 'Diaria' : 'Cada ' ~ t.every ~ ' min') }}</td>
+        <td>{% if t.last %}{{ t.last.started_at|slice(0, 19)|hace }} · {% if t.last.status == 'ok' %}<span class="text-success">correcta</span> ({{ t.last.items }}){% elseif t.last.status == 'error' %}<span class="text-danger">error</span>{% else %}{{ t.last.status }}{% endif %}{% if t.last.error %}<div class="text-danger text-break">{{ t.last.error }}</div>{% endif %}{% else %}<span class="text-muted">Nunca</span>{% endif %}</td>
+        <td>{{ t.last_ok ? t.last_ok|slice(0, 19)|fecha : '—' }}</td>
+        <td><form method="post" action="/admin/procesos/ejecutar">{{ csrf_field() }}<input type="hidden" name="task" value="{{ t.code }}"><button class="btn btn-sm btn-outline-secondary">Ejecutar</button></form></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table></div></div>
+
+<div class="row g-3">
+<div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">Cola de trabajos</div><div class="card-body small">
+        <div class="d-flex flex-wrap gap-3 mb-2">
+            <span>Pendientes: <strong>{{ queue.pending ?? 0 }}</strong></span><span>En curso: <strong>{{ queue.running ?? 0 }}</strong></span>
+            <span>Hechos: <strong>{{ queue.done ?? 0 }}</strong></span><span class="{{ (queue.dead ?? 0) > 0 ? 'text-danger' }}">Fallidos definitivos: <strong>{{ queue.dead ?? 0 }}</strong></span>
+        </div>
+        {% for j in problems %}
+        <div class="border-top py-2">
+            <div class="d-flex justify-content-between"><span><code>{{ j.job_type }}</code> #{{ j.id }} · {{ j.status == 'dead' ? 'fallido' : (j.status == 'failed' ? 'error' : 'reintentando') }} · intento {{ j.attempts }}/{{ j.max_attempts }}</span>
+            {% if j.status in ['dead','failed'] %}<form method="post" action="/admin/procesos/trabajos/{{ j.id }}/reintentar">{{ csrf_field() }}<button class="btn btn-link btn-sm p-0">Reintentar</button></form>{% endif %}</div>
+            {% if j.last_error %}<div class="text-danger text-break">{{ j.last_error }}</div>{% endif %}
+        </div>
+        {% else %}<div class="text-muted">No hay trabajos con errores.</div>{% endfor %}
+    </div></div>
+</div>
+<div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">Configurar la tarea programada en IONOS</div><div class="card-body small">
+        <p><strong>Opción A (recomendada, si tu plan tiene «Cron jobs»):</strong> cada 5 minutos, ejecutar:</p>
+        <div class="input-group input-group-sm mb-2"><input class="form-control font-monospace" id="cmd" readonly value="{{ php_binary }} {{ root }}/bin/cron.php"><button type="button" class="btn btn-outline-secondary" data-copy="#cmd">Copiar</button></div>
+        <p class="text-muted">La ruta de PHP en el cron de IONOS puede ser distinta de la de la web (por ejemplo <code>/usr/bin/php8.3-cli</code>): compruébala con el diagnóstico.</p>
+        <p class="mt-3"><strong>Opción B (sin cron en el plan):</strong> un servicio externo de cron llama cada 5 minutos a</p>
+        <div class="input-group input-group-sm mb-2"><input class="form-control font-monospace" id="curl" readonly value="POST {{ cron_url }}  (cabecera X-Cron-Key)"><button type="button" class="btn btn-outline-secondary" data-copy="#curl">Copiar</button></div>
+        {% if new_key %}
+        <div class="alert alert-warning mb-2">Clave nueva (se muestra una sola vez):<div class="input-group input-group-sm mt-1"><input class="form-control font-monospace" id="ck" readonly value="{{ new_key }}"><button type="button" class="btn btn-outline-dark" data-copy="#ck">Copiar</button></div></div>
+        {% endif %}
+        <div class="d-flex gap-2">
+            <form method="post" action="/admin/procesos/clave-cron" data-confirm="{{ http_key_configured ? 'La clave anterior dejará de funcionar.' : 'Se generará una clave para el disparador HTTP.' }}">{{ csrf_field() }}<button class="btn btn-sm btn-outline-primary">{{ http_key_configured ? 'Generar clave nueva' : 'Activar disparador HTTP' }}</button></form>
+            {% if http_key_configured %}<form method="post" action="/admin/procesos/clave-cron">{{ csrf_field() }}<input type="hidden" name="disable" value="1"><button class="btn btn-sm btn-outline-danger">Desactivar</button></form>{% endif %}
+        </div>
+    </div></div>
+</div>
+</div>
+{% endblock %}

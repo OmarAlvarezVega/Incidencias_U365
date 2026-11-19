@@ -1,0 +1,16 @@
+{% if files %}
+<div class="d-flex flex-wrap gap-2 mt-2">
+{% for a in files %}
+    {% if a.status == 'stored' %}
+    <span class="border rounded px-2 py-1 small bg-white">
+        <i class="bi bi-paperclip"></i>
+        <a href="/adjuntos/{{ a.id }}/descargar">{{ a.original_name }}</a> <span class="text-muted">{{ a.size_bytes|bytes }}</span>
+        {% if a.mime_type in ['image/png','image/jpeg','image/gif','image/webp','application/pdf'] %}<a href="/adjuntos/{{ a.id }}/ver" target="_blank" rel="noopener" class="ms-1" title="Ver"><i class="bi bi-eye"></i></a>{% endif %}
+        {% if a.visibility == 'internal' %}<span class="badge text-bg-warning ms-1">interno</span>{% endif %}
+    </span>
+    {% else %}
+    <span class="border border-danger rounded px-2 py-1 small text-danger" title="El archivo no se guardó por seguridad (tipo no permitido o contenido sospechoso)"><i class="bi bi-shield-x"></i> {{ a.original_name }} (rechazado)</span>
+    {% endif %}
+{% endfor %}
+</div>
+{% elseif show_empty ?? false %}<p class="small text-muted">No hay adjuntos sueltos.</p>{% endif %}
