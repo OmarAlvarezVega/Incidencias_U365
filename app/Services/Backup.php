@@ -90,7 +90,7 @@ final class Backup
         $w = static function (string $s) use ($gz): void {
             gzwrite($gz, $s);
         };
-        $w("-- UNIVERS365 Incidencias: copia de base de datos\n-- Fecha (UTC): " . Clock::nowDb() . "\n-- Restaurar SOLO con bin/restore.php sobre una base de datos vacía.\n");
+        $w("-- UNIVERS365 Tickets: copia de base de datos\n-- Fecha (UTC): " . Clock::nowDb() . "\n-- Restaurar SOLO con bin/restore.php sobre una base de datos vacía.\n");
         $w("SET NAMES utf8mb4;\nSET time_zone = '+00:00';\nSET foreign_key_checks = 0;\nSET unique_checks = 0;\nSET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';\n\n");
         $tables = $db->column("SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' ORDER BY table_name");
         foreach ($tables as $table) {
@@ -159,7 +159,7 @@ final class Backup
                 }
             }
         }
-        $zip->addFromString('LEEME.txt', "Archivos de UNIVERS365 Incidencias (adjuntos y correos originales).\nSe restauran copiando las carpetas dentro de storage/.\n");
+        $zip->addFromString('LEEME.txt', "Archivos de UNIVERS365 Tickets (adjuntos y correos originales).\nSe restauran copiando las carpetas dentro de storage/.\n");
         $zip->close();
         @chmod($path, 0640);
         return $path;

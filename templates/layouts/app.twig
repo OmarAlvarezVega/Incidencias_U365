@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{% block title %}Incidencias{% endblock %} · UNIVERS365</title>
+    <title>{% block title %}Tickets{% endblock %} · UNIVERS365</title>
     <link rel="icon" href="{{ asset('img/favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
@@ -16,13 +16,13 @@
     <aside class="app-sidebar" id="sidebar" aria-label="Navegación principal">
         <a class="brand" href="/">
             <span class="logo">U3</span>
-            <span>UNIVERS365<small>Gestión de incidencias</small></span>
+            <span>UNIVERS365<small>Gestión de tickets</small></span>
         </a>
         <nav class="nav flex-column pb-4">
             <div class="nav-section">Trabajo</div>
             <a class="nav-link {{ active('/', true) }}" href="/"><i class="bi bi-speedometer2"></i> Panel</a>
-            <a class="nav-link {{ active('/incidencias') }}" href="/incidencias"><i class="bi bi-inbox"></i> Incidencias</a>
-            <a class="nav-link" href="/incidencias?vista=mias"><i class="bi bi-person-check"></i> Mis incidencias</a>
+            <a class="nav-link {{ active('/incidencias') }}" href="/incidencias"><i class="bi bi-inbox"></i> Tickets</a>
+            <a class="nav-link" href="/incidencias?vista=mias"><i class="bi bi-person-check"></i> Mis tickets</a>
             {% if can('tickets.view.unassigned') or can('tickets.view.all') %}
             <a class="nav-link" href="/incidencias?vista=sin_asignar"><i class="bi bi-person-dash"></i> Sin asignar</a>
             {% endif %}
@@ -82,6 +82,9 @@
             {% if can('backups.manage') %}
             <a class="nav-link {{ active('/admin/copias') }}" href="/admin/copias"><i class="bi bi-hdd-stack"></i> Copias de seguridad</a>
             {% endif %}
+            {% if current_user and current_user.roleCode == 'superadmin' %}
+            <a class="nav-link {{ active('/admin/actualizacion') }}" href="/admin/actualizacion"><i class="bi bi-arrow-repeat"></i> Actualización</a>
+            {% endif %}
         </nav>
     </aside>
 
@@ -90,14 +93,14 @@
             <button class="btn btn-light sidebar-toggle" type="button" data-toggle-sidebar aria-label="Abrir menú"><i class="bi bi-list"></i></button>
             <div class="search" data-global-search>
                 <i class="bi bi-search"></i>
-                <input type="search" class="form-control" placeholder="Buscar incidencias, clientes, contactos, correos…  (/)" aria-label="Búsqueda global" autocomplete="off">
+                <input type="search" class="form-control" placeholder="Buscar tickets, clientes, contactos, correos…  (/)" aria-label="Búsqueda global" autocomplete="off">
                 <div class="search-results" role="listbox"></div>
             </div>
             <span class="timer-pill d-none" data-active-timer title="Temporizador en marcha">
                 <i class="bi bi-stopwatch"></i> <a class="text-reset text-decoration-none" href="#" data-timer-link></a> <span data-timer-clock>00:00:00</span>
             </span>
             {% if can('tickets.create') %}
-            <a class="btn btn-primary btn-sm d-none d-md-inline-flex align-items-center gap-1" href="/incidencias/nueva"><i class="bi bi-plus-lg"></i> Nueva incidencia</a>
+            <a class="btn btn-primary btn-sm d-none d-md-inline-flex align-items-center gap-1" href="/incidencias/nueva"><i class="bi bi-plus-lg"></i> Nuevo ticket</a>
             {% endif %}
             <div class="dropdown">
                 <button class="btn btn-light position-relative" type="button" data-bs-toggle="dropdown" data-notifications-toggle aria-label="Notificaciones">
@@ -138,6 +141,9 @@
         </header>
 
         <main class="app-content">
+            {% if pending_migrations() > 0 and current_path != '/admin/actualizacion' %}
+            <div class="alert alert-warning small"><i class="bi bi-arrow-repeat"></i> Hay cambios de base de datos pendientes de aplicar tras la última actualización. <a href="/admin/actualizacion" class="alert-link">Aplicarlos ahora</a>.</div>
+            {% endif %}
             {% for f in flashes %}
                 <div class="alert alert-{{ f.type == 'danger' ? 'danger' : (f.type == 'warning' ? 'warning' : (f.type == 'info' ? 'info' : 'success')) }} alert-dismissible fade show" role="alert">
                     {{ f.message }}
@@ -145,6 +151,7 @@
                 </div>
             {% endfor %}
             {% block content %}{% endblock %}
+            <footer class="app-footer">UNIVERS365 Tickets · versión {{ app_version }}</footer>
         </main>
     </div>
 </div>

@@ -29,7 +29,7 @@ Actualizado: 27/10/2026, versión 1.0.0 (fases 1 a 9 entregadas en código).
 
 ## Mejoras identificadas (no bloquean)
 
-- [ ] Pantalla para aplicar migraciones sin SSH (con copia previa obligatoria).
+- [x] Pantalla para aplicar migraciones sin SSH (con copia previa obligatoria). Versión 1.1.0.
 - [ ] OAuth2 de Google Workspace para buzones de Google.
 - [ ] Portal de clientes (el modelo y los permisos ya existen).
 - [ ] Anonimización RGPD que también limpie el texto de mensajes y notas.

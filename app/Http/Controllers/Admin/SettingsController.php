@@ -16,12 +16,13 @@ final class SettingsController extends Controller
     private const FIELDS = [
         'company.name' => ['string', 'Nombre de la empresa', 2, 120],
         'tickets.default_priority' => ['priority', 'Prioridad predeterminada', 0, 0],
-        'tickets.auto_close_days' => ['int', 'Cierre automático de resueltas (días)', 0, 90],
-        'tickets.ack_email' => ['bool', 'Acuse de recibo por correo al abrir una incidencia por correo', 0, 0],
+        'tickets.auto_close_days' => ['int', 'Cierre automático de tickets resueltos (días)', 0, 90],
+        'tickets.ack_email' => ['bool', 'Acuse de recibo por correo al abrir un ticket por correo', 0, 0],
         'notifications.email_enabled' => ['bool', 'Enviar avisos internos por correo', 0, 0],
-        'workload.default_capacity' => ['int', 'Capacidad por defecto de un técnico (incidencias abiertas)', 1, 500],
+        'workload.default_capacity' => ['int', 'Capacidad por defecto de un técnico (tickets abiertos)', 1, 500],
         'security.password_min_length' => ['int', 'Longitud mínima de contraseña', 10, 64],
         'security.session_idle_minutes' => ['int', 'Cierre de sesión por inactividad (minutos)', 15, 480],
+        'security.remember_days' => ['int', 'Mantener la sesión iniciada en un dispositivo (días; 0 = desactivado)', 0, 365],
         'security.login_max_attempts' => ['int', 'Intentos fallidos antes de bloquear temporalmente', 3, 20],
         'security.reset_minutes' => ['int', 'Validez del enlace de recuperación (minutos)', 10, 120],
         'uploads.max_mb' => ['int', 'Tamaño máximo por adjunto (MB)', 1, 50],
@@ -32,7 +33,7 @@ final class SettingsController extends Controller
     ];
     private const DEFAULTS = [
         'company.name' => 'UNIVERS365 TECHNOLOGY', 'tickets.default_priority' => 'normal', 'tickets.auto_close_days' => 7, 'tickets.ack_email' => true,
-        'notifications.email_enabled' => true, 'workload.default_capacity' => 15, 'security.password_min_length' => 12, 'security.session_idle_minutes' => 60,
+        'notifications.email_enabled' => true, 'workload.default_capacity' => 15, 'security.password_min_length' => 12, 'security.session_idle_minutes' => 60, 'security.remember_days' => 180,
         'security.login_max_attempts' => 5, 'security.reset_minutes' => 30, 'uploads.max_mb' => 15, 'uploads.allowed_extensions' => [],
         'backups.auto' => false, 'backups.include_files' => true, 'backups.keep' => 14,
     ];

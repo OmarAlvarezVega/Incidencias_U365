@@ -26,7 +26,7 @@
         <td class="text-nowrap">{{ r.occurred_at|slice(0, 19)|fecha }}</td>
         <td>{{ r.actor ?: (r.actor_type == 'system' ? 'Sistema' : (r.actor_type == 'integration' ? 'Integración' : 'Anónimo')) }}</td>
         <td><code>{{ r.action }}</code></td>
-        <td class="text-nowrap">{% if r.entity_type == 'ticket' %}<a href="/incidencias/{{ r.entity_id }}">incidencia #{{ r.entity_id }}</a>{% elseif r.entity_type == 'client' %}<a href="/clientes/{{ r.entity_id }}">cliente #{{ r.entity_id }}</a>{% elseif r.entity_type == 'user' %}<a href="/empleados/{{ r.entity_id }}">usuario #{{ r.entity_id }}</a>{% elseif r.entity_type %}{{ r.entity_type }} #{{ r.entity_id }}{% endif %}</td>
+        <td class="text-nowrap">{% if r.entity_type == 'ticket' %}<a href="/incidencias/{{ r.entity_id }}">ticket #{{ r.entity_id }}</a>{% elseif r.entity_type == 'client' %}<a href="/clientes/{{ r.entity_id }}">cliente #{{ r.entity_id }}</a>{% elseif r.entity_type == 'user' %}<a href="/empleados/{{ r.entity_id }}">usuario #{{ r.entity_id }}</a>{% elseif r.entity_type %}{{ r.entity_type }} #{{ r.entity_id }}{% endif %}</td>
         <td class="text-break" style="max-width: 28rem">{% if r.details %}{% for k, v in r.details|json_decode %}<span class="me-2"><span class="text-muted">{{ k }}:</span> {{ v is iterable ? v|json_encode(constant('JSON_UNESCAPED_UNICODE')) : (v is same as(true) ? 'sí' : (v is same as(false) ? 'no' : v)) }}</span>{% endfor %}{% endif %}</td>
         <td class="text-muted">{{ r.ip }}</td>
         <td>{% if r.chain_seq %}<i class="bi bi-link-45deg text-success" title="Sellado (eslabón {{ r.chain_seq }})"></i>{% else %}<i class="bi bi-hourglass text-muted" title="Pendiente de sellar"></i>{% endif %}</td>

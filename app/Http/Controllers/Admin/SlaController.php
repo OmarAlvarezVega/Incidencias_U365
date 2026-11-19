@@ -103,7 +103,7 @@ final class SlaController extends Controller
             return $id;
         });
         $this->audit()->log('sla.policy_saved', 'sla_policy', $id, ['nombre' => $d['name'], 'activa' => $d['active'], 'objetivos' => count($targets)]);
-        return $this->redirect('/admin/sla#politica-' . $id, 'Política guardada. Se aplica a las incidencias que se creen desde ahora.');
+        return $this->redirect('/admin/sla#politica-' . $id, 'Política guardada. Se aplica a los tickets que se creen desde ahora.');
     }
 
     public function saveCalendar(): Response

@@ -27,15 +27,15 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Abiertas como responsable</div><div class="kpi-value">{{ tickets|filter(t => t.role == 'owner')|length }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Abiertos como responsable</div><div class="kpi-value">{{ tickets|filter(t => t.role == 'owner')|length }}</div></div></div></div>
     <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Colabora en</div><div class="kpi-value">{{ tickets|filter(t => t.role == 'collaborator')|length }}</div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Resueltas (30 días)</div><div class="kpi-value">{{ stats.resolved_30 }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Resueltos (30 días)</div><div class="kpi-value">{{ stats.resolved_30 }}</div></div></div></div>
     <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Tiempo (30 días)</div><div class="kpi-value">{{ stats.minutes_30|minutos }}</div></div></div></div>
 </div>
 
 <div class="row g-3">
 <div class="col-lg-8">
-    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>Incidencias abiertas</span><a class="small" href="/incidencias?vista=abiertas&responsable={{ e.id }}">Ver en el listado</a></div>
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>Tickets abiertos</span><a class="small" href="/incidencias?vista=abiertas&responsable={{ e.id }}">Ver en el listado</a></div>
     <div class="table-responsive"><table class="table table-hover align-middle mb-0"><tbody>
     {% for t in tickets %}
         <tr>
@@ -46,7 +46,7 @@
             <td class="small text-muted text-nowrap">{{ t.last_activity_at|hace }}</td>
         </tr>
     {% else %}
-        <tr><td class="empty-state"><i class="bi bi-check2-circle"></i>No tiene incidencias abiertas.</td></tr>
+        <tr><td class="empty-state"><i class="bi bi-check2-circle"></i>No tiene tickets abiertos.</td></tr>
     {% endfor %}
     </tbody></table></div></div>
 
@@ -87,7 +87,7 @@
             <dt class="col-5">Teléfono</dt><dd class="col-7">{{ e.corporate_phone ?: '—' }}</dd>
             <dt class="col-5">Alta</dt><dd class="col-7">{{ e.hired_on ? e.hired_on|dia : '—' }}</dd>
             {% if e.left_on %}<dt class="col-5">Baja</dt><dd class="col-7">{{ e.left_on|dia }}</dd>{% endif %}
-            <dt class="col-5">Límite</dt><dd class="col-7">{{ e.max_open_tickets ?: setting('workload.default_capacity', 15) }} abiertas</dd>
+            <dt class="col-5">Límite</dt><dd class="col-7">{{ e.max_open_tickets ?: setting('workload.default_capacity', 15) }} abiertos</dd>
             <dt class="col-5">Último acceso</dt><dd class="col-7">{{ e.last_login_at ? e.last_login_at|fecha : 'Nunca' }}</dd>
             <dt class="col-5">Especialidades</dt><dd class="col-7">{{ specialties ? specialties|join(', ') : '—' }}</dd>
             <dt class="col-5">Equipos</dt><dd class="col-7">{% for t in teams %}{{ t.name }}{% if t.is_lead %} <span class="badge text-bg-light">coordina</span>{% endif %}{{ not loop.last ? ', ' }}{% else %}—{% endfor %}</dd>
@@ -95,12 +95,12 @@
     </div></div>
 
     {% if can('tickets.reassign') and tickets is not empty %}
-    <div class="card mb-3"><div class="card-header">Reasignar sus incidencias</div><div class="card-body">
-        <p class="small text-muted">Útil en vacaciones o bajas. Pasa todas sus incidencias abiertas a otra persona o a la bandeja sin asignar.</p>
-        <form method="post" action="/empleados/{{ e.id }}/reasignar" data-confirm="Se reasignarán todas sus incidencias abiertas.">{{ csrf_field() }}
+    <div class="card mb-3"><div class="card-header">Reasignar sus tickets</div><div class="card-body">
+        <p class="small text-muted">Útil en vacaciones o bajas. Pasa todos sus tickets abiertos a otra persona o a la bandeja sin asignar.</p>
+        <form method="post" action="/empleados/{{ e.id }}/reasignar" data-confirm="Se reasignarán todos sus tickets abiertos.">{{ csrf_field() }}
             <label class="form-label small" for="to_user_id">Nuevo responsable</label>
             <select class="form-select form-select-sm mb-2" id="to_user_id" name="to_user_id"><option value="">Dejar sin asignar</option>{% for s in staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
-            <div class="form-check small mb-2"><input class="form-check-input" type="checkbox" id="inc_col" name="include_collaborations" value="1"><label class="form-check-label" for="inc_col">Quitarle también de las incidencias en que colabora</label></div>
+            <div class="form-check small mb-2"><input class="form-check-input" type="checkbox" id="inc_col" name="include_collaborations" value="1"><label class="form-check-label" for="inc_col">Quitarle también de los tickets en que colabora</label></div>
             <button class="btn btn-sm btn-outline-primary">Reasignar</button>
         </form>
     </div></div>

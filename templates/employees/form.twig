@@ -37,7 +37,7 @@
         {% endif %}
         {% if error('role_id') %}<div class="invalid-feedback d-block">{{ error('role_id') }}</div>{% endif %}
     </div>
-    {{ f.field('max_open_tickets', 'Límite de incidencias abiertas', e.max_open_tickets ?? '', {type: 'number', col: 'col-md-4', help: 'Opcional. Por defecto ' ~ setting('workload.default_capacity', 15) ~ '. Se usa en la vista de carga.'}) }}
+    {{ f.field('max_open_tickets', 'Límite de tickets abiertos', e.max_open_tickets ?? '', {type: 'number', col: 'col-md-4', help: 'Opcional. Por defecto ' ~ setting('workload.default_capacity', 15) ~ '. Se usa en la vista de carga.'}) }}
 </div>
 </div></div>
 
@@ -51,7 +51,7 @@
         </div>
     {% endfor %}
     </div>
-    <div class="form-text">El coordinador de un equipo ve y gestiona las incidencias de ese equipo si su rol lo permite.</div>
+    <div class="form-text">El coordinador de un equipo ve y gestiona los tickets de ese equipo si su rol lo permite.</div>
 </div></div>
 
 {% if specialties %}

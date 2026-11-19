@@ -75,6 +75,7 @@ final class Kernel
         $useSession = ($opts['session'] ?? true) !== false;
         if ($useSession) {
             $this->app->session()->start($https);
+            $this->app->auth()->setRequest($request);
         }
 
         if (in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true) && $useSession && ($opts['csrf'] ?? true) !== false) {

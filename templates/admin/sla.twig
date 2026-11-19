@@ -38,7 +38,7 @@
 {% block content %}
 {% import _self as s %}
 <div class="page-header"><div><h1>SLA</h1><div class="subtitle">Tiempos objetivo por prioridad, horario laboral y festivos (Europe/Madrid).</div></div></div>
-{% if no_active %}<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> No hay ninguna política activa: las incidencias no tienen vencimientos de SLA. Revisa los objetivos y marca «Activa».</div>{% endif %}
+{% if no_active %}<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> No hay ninguna política activa: los tickets no tienen vencimientos de SLA. Revisa los objetivos y marca «Activa».</div>{% endif %}
 
 {% for p in policies %}
 <div class="card mb-3" id="politica-{{ p.id }}">

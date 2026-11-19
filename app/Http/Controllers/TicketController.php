@@ -19,15 +19,15 @@ use App\Services\WhatsApp\WhatsAppService;
 final class TicketController extends Controller
 {
     private const VIEWS = [
-        'abiertas' => 'Abiertas',
-        'mias' => 'Mis incidencias',
-        'colaboro' => 'En las que colaboro',
+        'abiertas' => 'Tickets abiertos',
+        'mias' => 'Mis tickets',
+        'colaboro' => 'En los que colaboro',
         'sin_asignar' => 'Sin asignar',
         'equipo' => 'De mis equipos',
-        'vencidas' => 'Vencidas o SLA incumplido',
+        'vencidas' => 'Vencidos o SLA incumplido',
         'sin_identificar' => 'Sin cliente identificado',
-        'resueltas' => 'Resueltas y cerradas',
-        'todas' => 'Todas',
+        'resueltas' => 'Resueltos y cerrados',
+        'todas' => 'Todos los tickets',
     ];
 
     private const SORTS = [
@@ -204,16 +204,16 @@ final class TicketController extends Controller
              " . self::LIST_FROM . " WHERE $where ORDER BY $order LIMIT 20000",
             $params
         );
-        $headers = ['Número', 'Creada', 'Asunto', 'Cliente', 'Contacto', 'Estado', 'Prioridad', 'Categoría', 'Canal', 'Responsable', 'Equipo', 'Primera respuesta', 'Resuelta', 'Cerrada', 'Minutos', 'Última actividad'];
+        $headers = ['Número', 'Creado', 'Asunto', 'Cliente', 'Contacto', 'Estado', 'Prioridad', 'Categoría', 'Canal', 'Responsable', 'Equipo', 'Primera respuesta', 'Resuelto', 'Cerrado', 'Minutos', 'Última actividad'];
         $data = array_map(static fn ($r) => [
             $r['ticket_number'], Clock::format($r['created_at']), $r['subject'], $r['client'], $r['contact'], $r['status'], $r['priority'],
             $r['category'], $r['channel_code'], $r['owner'], $r['team'], Clock::format($r['first_response_at']), Clock::format($r['resolved_at']),
             Clock::format($r['closed_at']), (int)$r['total_minutes'], Clock::format($r['last_activity_at']),
         ], $rows);
         $this->audit()->log('tickets.exported', null, null, ['filtros' => $f, 'filas' => count($rows)]);
-        $name = 'incidencias-' . Clock::localDate() . ($this->request->str('formato') === 'xlsx' ? '.xlsx' : '.csv');
+        $name = 'tickets-' . Clock::localDate() . ($this->request->str('formato') === 'xlsx' ? '.xlsx' : '.csv');
         return $this->request->str('formato') === 'xlsx'
-            ? Export::xlsx($name, 'Incidencias', $headers, $data, $this->app->storagePath('tmp'))
+            ? Export::xlsx($name, 'Tickets', $headers, $data, $this->app->storagePath('tmp'))
             : Export::csv($name, $headers, $data);
     }
 
@@ -224,7 +224,7 @@ final class TicketController extends Controller
         $ids = array_slice($this->request->intList('ids'), 0, 200);
         $action = $this->request->str('accion');
         if ($ids === []) {
-            throw new ValidationException([], 'No has seleccionado ninguna incidencia.');
+            throw new ValidationException([], 'No has seleccionado ningún ticket.');
         }
         $svc = $this->svc();
         $done = 0;
@@ -259,7 +259,7 @@ final class TicketController extends Controller
             $this->flash('warning', 'No se pudieron actualizar ' . count($errors) . ': ' . implode(' · ', array_slice($errors, 0, 5)));
         }
         if ($done > 0) {
-            $this->flash('success', "Actualizadas $done incidencias.");
+            $this->flash('success', "Actualizados $done tickets.");
         }
         return $this->back('/incidencias');
     }
@@ -300,7 +300,7 @@ final class TicketController extends Controller
         }
         if (($d['owner_user_id'] !== null || $d['collaborators'] !== []) && !$u->can('tickets.assign')) {
             if ($d['owner_user_id'] !== $u->id || $d['collaborators'] !== []) {
-                throw HttpException::forbidden('No tienes permiso para asignar incidencias a otras personas.');
+                throw HttpException::forbidden('No tienes permiso para asignar tickets a otras personas.');
             }
         }
         $id = $this->svc()->create($d, $u, 'manual');
@@ -309,7 +309,7 @@ final class TicketController extends Controller
             $this->app->make(\App\Services\Attachments::class)->storeUploads($id, $files, $u->id, $this->request->str('files_visibility') === 'public' ? 'public' : 'internal');
         }
         $num = $this->db()->value('SELECT ticket_number FROM tickets WHERE id = ?', [$id]);
-        return $this->redirect("/incidencias/$id", "Incidencia $num creada.");
+        return $this->redirect("/incidencias/$id", "Ticket $num creado.");
     }
 
     // ------------------------------------------------------------------
@@ -507,11 +507,11 @@ final class TicketController extends Controller
         $u = $this->user();
         $t = $this->load();
         if ($t['owner_user_id'] !== null) {
-            throw new ValidationException([], 'La incidencia ya tiene responsable.');
+            throw new ValidationException([], 'El ticket ya tiene responsable.');
         }
         $collabs = array_map('intval', $this->db()->column("SELECT user_id FROM ticket_participants WHERE ticket_id = ? AND role = 'collaborator' AND removed_at IS NULL", [(int)$t['id']]));
         $this->svc()->assign($t, $u->id, array_values(array_diff($collabs, [$u->id])), $u);
-        return $this->redirect('/incidencias/' . $t['id'], 'Ahora eres el responsable de esta incidencia.');
+        return $this->redirect('/incidencias/' . $t['id'], 'Ahora eres el responsable de este ticket.');
     }
 
     public function identify(): Response
@@ -594,7 +594,7 @@ final class TicketController extends Controller
         $num = strtoupper(trim($this->request->str('related')));
         $relatedId = ctype_digit($num) ? (int)$num : (int)$this->db()->value('SELECT id FROM tickets WHERE ticket_number = ?', [$num]);
         if ($relatedId === 0) {
-            throw ValidationException::single('related', 'No existe ninguna incidencia con ese número.');
+            throw ValidationException::single('related', 'No existe ningún ticket con ese número.');
         }
         $this->svc()->addRelation($t, $relatedId, $this->request->str('relation_type'), $u);
         return $this->redirect('/incidencias/' . $t['id'], 'Relación añadida.');

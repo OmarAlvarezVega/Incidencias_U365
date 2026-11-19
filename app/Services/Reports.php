@@ -15,13 +15,13 @@ use App\Security\CurrentUser;
 final class Reports
 {
     public const REPORTS = [
-        'incidencias' => 'Listado de incidencias',
-        'clientes' => 'Incidencias y tiempo por cliente',
+        'incidencias' => 'Listado de tickets',
+        'clientes' => 'Tickets y tiempo por cliente',
         'empleados' => 'Rendimiento por empleado',
         'tiempos' => 'Registro de tiempos (detalle)',
         'sla' => 'Cumplimiento de SLA por prioridad',
-        'categorias' => 'Incidencias por categoría',
-        'canales' => 'Incidencias por canal de entrada',
+        'categorias' => 'Tickets por categoría',
+        'canales' => 'Tickets por canal de entrada',
     ];
 
     public function __construct(private readonly App $app)
@@ -116,14 +116,14 @@ final class Reports
         $col = static fn (array $rows, string $k) => array_map(static fn ($r) => $r[$k], $rows);
         return [
             'trend' => ['type' => 'line', 'labels' => $labels, 'datasets' => [
-                ['label' => 'Creadas', 'data' => array_column($days, 0), 'color' => '#1f6feb'],
-                ['label' => 'Resueltas', 'data' => array_column($days, 1), 'color' => '#20c997'],
+                ['label' => 'Creados', 'data' => array_column($days, 0), 'color' => '#1f6feb'],
+                ['label' => 'Resueltos', 'data' => array_column($days, 1), 'color' => '#20c997'],
             ]],
-            'status' => ['type' => 'doughnut', 'labels' => $col($byStatus, 'name'), 'datasets' => [['label' => 'Abiertas', 'data' => array_map('intval', $col($byStatus, 'n')), 'colors' => $col($byStatus, 'color')]]],
-            'priority' => ['type' => 'bar', 'labels' => $col($byPriority, 'name'), 'datasets' => [['label' => 'Abiertas', 'data' => array_map('intval', $col($byPriority, 'n')), 'backgroundColor' => $col($byPriority, 'color')]]],
+            'status' => ['type' => 'doughnut', 'labels' => $col($byStatus, 'name'), 'datasets' => [['label' => 'Abiertos', 'data' => array_map('intval', $col($byStatus, 'n')), 'colors' => $col($byStatus, 'color')]]],
+            'priority' => ['type' => 'bar', 'labels' => $col($byPriority, 'name'), 'datasets' => [['label' => 'Abiertos', 'data' => array_map('intval', $col($byPriority, 'n')), 'backgroundColor' => $col($byPriority, 'color')]]],
             'category' => ['type' => 'bar', 'labels' => $col($byCategory, 'name'), 'datasets' => [['label' => 'Últimos 30 días', 'data' => array_map('intval', $col($byCategory, 'n'))]]],
             'channel' => ['type' => 'doughnut', 'labels' => $col($byChannel, 'name'), 'datasets' => [['label' => 'Últimos 30 días', 'data' => array_map('intval', $col($byChannel, 'n'))]]],
-            'owner' => ['type' => 'bar', 'labels' => $col($byOwner, 'name'), 'datasets' => [['label' => 'Abiertas', 'data' => array_map('intval', $col($byOwner, 'n'))]]],
+            'owner' => ['type' => 'bar', 'labels' => $col($byOwner, 'name'), 'datasets' => [['label' => 'Abiertos', 'data' => array_map('intval', $col($byOwner, 'n'))]]],
         ];
     }
 
@@ -179,7 +179,7 @@ final class Reports
                     array_merge($range, $p, $ep)
                 );
                 return [
-                    'headers' => ['Número', 'Creada', 'Asunto', 'Cliente', 'Contacto', 'Estado', 'Prioridad', 'Categoría', 'Canal', 'Responsable', 'Equipo', 'Primera respuesta', 'Resuelta', 'Cerrada', 'Minutos', 'Tiempo', 'SLA'],
+                    'headers' => ['Número', 'Creado', 'Asunto', 'Cliente', 'Contacto', 'Estado', 'Prioridad', 'Categoría', 'Canal', 'Responsable', 'Equipo', 'Primera respuesta', 'Resuelto', 'Cerrado', 'Minutos', 'Tiempo', 'SLA'],
                     'rows' => array_map(static fn ($r) => [
                         $r['ticket_number'], Clock::format($r['created_at']), $r['subject'], $r['client'], $r['contact'], $r['status'], $r['priority'],
                         $r['category'], $r['channel'], $r['owner'], $r['team'], Clock::format($r['first_response_at']), Clock::format($r['resolved_at']),
@@ -200,7 +200,7 @@ final class Reports
                     array_merge($range, $p, $ep)
                 );
                 return [
-                    'headers' => ['Cliente', 'Código', 'Creadas', 'Resueltas', 'Resolución media (natural)', 'Minutos registrados', 'Tiempo registrado'],
+                    'headers' => ['Cliente', 'Código', 'Creados', 'Resueltos', 'Resolución media (natural)', 'Minutos registrados', 'Tiempo registrado'],
                     'rows' => array_map(static fn ($r) => [$r['client'], $r['code'] ?? '', (int)$r['created'], (int)$r['resolved'], $r['avg_res'] !== null ? $hm(round((float)$r['avg_res'])) : '', (int)$r['minutes'], $hm($r['minutes'])], $rows),
                     'totals' => ['Total', '', array_sum(array_column($rows, 'created')), array_sum(array_column($rows, 'resolved')), '', array_sum(array_column($rows, 'minutes')), $hm(array_sum(array_column($rows, 'minutes')))],
                 ];
@@ -220,7 +220,7 @@ final class Reports
                     array_merge($range, $p, $ep, $range, $p, $ep, $range, $p, $ep, [$dayFrom, $dayTo], $p, $ep)
                 );
                 return [
-                    'headers' => ['Empleado', 'Asignadas (creadas en el periodo)', 'Resueltas en el periodo', 'Abiertas ahora', 'Primera respuesta media (natural)', 'Minutos registrados', 'Tiempo registrado'],
+                    'headers' => ['Empleado', 'Asignados (creados en el periodo)', 'Resueltos en el periodo', 'Abiertos ahora', 'Primera respuesta media (natural)', 'Minutos registrados', 'Tiempo registrado'],
                     'rows' => array_map(static fn ($r) => [$r['name'], (int)$r['assigned'], (int)$r['resolved'], (int)$r['open_now'], $r['avg_fr'] !== null ? $hm(round((float)$r['avg_fr'])) : '', (int)$r['minutes'], $hm($r['minutes'])], $rows),
                     'totals' => null,
                 ];
@@ -244,7 +244,7 @@ final class Reports
                     array_merge([$dayFrom, $dayTo], $p, $ep, $up)
                 );
                 return [
-                    'headers' => ['Fecha', 'Empleado', 'Incidencia', 'Asunto', 'Cliente', 'Minutos', 'Tiempo', 'Origen', 'Facturable', 'Descripción'],
+                    'headers' => ['Fecha', 'Empleado', 'Ticket', 'Asunto', 'Cliente', 'Minutos', 'Tiempo', 'Origen', 'Facturable', 'Descripción'],
                     'rows' => array_map(static fn ($r) => [
                         Clock::format($r['work_date'] . ' 12:00:00', false), $r['employee'], $r['ticket_number'], $r['subject'], $r['client'],
                         (int)$r['minutes'], $hm($r['minutes']), $r['source'] === 'timer' ? 'Temporizador' : 'Manual', $r['billable'] ? 'Sí' : 'No', (string)$r['description'],
@@ -265,7 +265,7 @@ final class Reports
                 );
                 $pct = static fn ($ok, $tot) => $tot > 0 ? number_format(100 * $ok / $tot, 1, ',', '.') . ' %' : '';
                 return [
-                    'headers' => ['Prioridad', 'Incidencias con SLA', 'Primera respuesta incumplida', '% cumplimiento 1.ª respuesta', 'Con objetivo de resolución', 'Resolución incumplida', '% cumplimiento resolución'],
+                    'headers' => ['Prioridad', 'Tickets con SLA', 'Primera respuesta incumplida', '% cumplimiento 1.ª respuesta', 'Con objetivo de resolución', 'Resolución incumplida', '% cumplimiento resolución'],
                     'rows' => array_map(static fn ($r) => [
                         $r['name'], (int)$r['total'], (int)$r['fr_breached'], $pct((int)$r['total'] - (int)$r['fr_breached'], (int)$r['total']),
                         (int)$r['res_total'], (int)$r['res_breached'], $pct((int)$r['res_total'] - (int)$r['res_breached'], (int)$r['res_total']),
@@ -286,7 +286,7 @@ final class Reports
                     array_merge($range, $p, $ep)
                 );
                 return [
-                    'headers' => [$code === 'categorias' ? 'Categoría' : 'Canal', 'Incidencias', 'Resueltas', 'Minutos registrados', 'Tiempo registrado'],
+                    'headers' => [$code === 'categorias' ? 'Categoría' : 'Canal', 'Tickets', 'Resueltos', 'Minutos registrados', 'Tiempo registrado'],
                     'rows' => array_map(static fn ($r) => [$r['name'], (int)$r['n'], (int)$r['resolved'], (int)$r['minutes'], $hm($r['minutes'])], $rows),
                     'totals' => ['Total', array_sum(array_column($rows, 'n')), array_sum(array_column($rows, 'resolved')), array_sum(array_column($rows, 'minutes')), $hm(array_sum(array_column($rows, 'minutes')))],
                 ];

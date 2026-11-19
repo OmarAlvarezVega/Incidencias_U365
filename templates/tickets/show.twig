@@ -2,14 +2,14 @@
 {% import 'partials/macros.twig' as m %}
 {% block title %}{{ t.ticket_number }}{% endblock %}
 {% set event_labels = {
-    created: 'Incidencia creada', updated: 'Datos modificados', status_changed: 'Cambio de estado', reopened: 'Reabierta',
+    created: 'Ticket creado', updated: 'Datos modificados', status_changed: 'Cambio de estado', reopened: 'Reabierto',
     priority_changed: 'Cambio de prioridad', owner_changed: 'Cambio de responsable', participants_changed: 'Cambio de colaboradores',
     team_changed: 'Cambio de equipo', identified: 'Cliente identificado', reply_sent: 'Respuesta al cliente', customer_message: 'Mensaje del cliente',
     tags_changed: 'Etiquetas', relation_added: 'Relación añadida', relation_removed: 'Relación eliminada', deleted: 'Eliminada',
     timer_started: 'Temporizador iniciado', timer_stopped: 'Temporizador detenido', time_added: 'Tiempo registrado', time_edited: 'Tiempo corregido',
     time_deleted: 'Tiempo eliminado', sla_breached: 'SLA incumplido', delivery_failed: 'Entrega fallida', attachments_added: 'Adjuntos', reply_resent: 'Reenvío de respuesta'
 } %}
-{% set relation_labels = {related: 'Relacionada con', duplicate_of: 'Duplicada de', parent_of: 'Incidencia padre de', blocks: 'Bloquea a'} %}
+{% set relation_labels = {related: 'Relacionado con', duplicate_of: 'Duplicado de', parent_of: 'Ticket padre de', blocks: 'Bloquea a'} %}
 {% set relation_labels_in = {related: 'Relacionada con', duplicate_of: 'Tiene como duplicada', parent_of: 'Hija de', blocks: 'Bloqueada por'} %}
 {% set delivery = {received: ['Recibido', 'text-bg-light'], queued: ['En cola', 'text-bg-secondary'], sent: ['Enviado', 'text-bg-primary'], delivered: ['Entregado', 'text-bg-info'], read: ['Leído', 'text-bg-success'], failed: ['Fallido', 'text-bg-danger']} %}
 {% block content %}
@@ -26,7 +26,7 @@
                 <form method="post" action="/temporizador/parar" data-timer-form>{{ csrf_field() }}<input type="hidden" name="back" value="/incidencias/{{ t.id }}">
                     <button class="btn btn-success btn-sm"><i class="bi bi-stop-circle"></i> Parar <span data-timer-local>…</span></button></form>
                 {% else %}
-                <form method="post" action="/incidencias/{{ t.id }}/temporizador/iniciar" data-timer-form {% if timer %}data-confirm="Tienes el temporizador en marcha en {{ timer.ticket_number }}. Se parará y empezará en esta incidencia."{% endif %}>{{ csrf_field() }}
+                <form method="post" action="/incidencias/{{ t.id }}/temporizador/iniciar" data-timer-form {% if timer %}data-confirm="Tienes el temporizador en marcha en {{ timer.ticket_number }}. Se parará y empezará en este ticket."{% endif %}>{{ csrf_field() }}
                     <button class="btn btn-outline-success btn-sm"><i class="bi bi-play-circle"></i> Iniciar temporizador</button></form>
                 {% endif %}
             {% endif %}
@@ -95,7 +95,7 @@
                         {% if wa_conv %}<option value="whatsapp" {{ t.channel_code == 'whatsapp' ? 'selected' }} {{ (not wa_window and not wa_template) ? 'disabled' }}>WhatsApp +{{ wa_conv.wa_id }}{{ wa_window ? '' : (wa_template ? ' (plantilla, fuera de 24 h)' : ' (fuera de la ventana de 24 h)') }}</option>{% endif %}
                     </select>
                 </div>
-                <textarea class="form-control mb-2" name="body" rows="5" required placeholder="Escribe la respuesta. El cliente la recibirá con la firma y la referencia de la incidencia." aria-label="Respuesta al cliente"></textarea>
+                <textarea class="form-control mb-2" name="body" rows="5" required placeholder="Escribe la respuesta. El cliente la recibirá con la firma y la referencia del ticket." aria-label="Respuesta al cliente"></textarea>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     {% if can.upload %}<input class="form-control form-control-sm w-auto" type="file" name="files[]" multiple aria-label="Adjuntos">{% endif %}
                     <select class="form-select form-select-sm w-auto" name="status_after" aria-label="Estado después de responder"><option value="">Sin cambiar el estado</option>
@@ -252,7 +252,7 @@
         <form method="post" action="/incidencias/{{ t.id }}/relaciones" class="d-flex flex-wrap gap-2">
             {{ csrf_field() }}
             <select class="form-select form-select-sm w-auto" name="relation_type" aria-label="Tipo de relación">{% for k, v in relation_labels %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
-            <input class="form-control form-control-sm w-auto" name="related" placeholder="INC-2026-000123" required aria-label="Número de incidencia">
+            <input class="form-control form-control-sm w-auto" name="related" placeholder="INC-2026-000123" required aria-label="Número de ticket">
             <button class="btn btn-sm btn-outline-primary">Relacionar</button>
         </form>
         {% endif %}
@@ -290,8 +290,8 @@
         </form></details>
         {% endif %}
         {% if can.delete %}
-        <details class="mt-4 small"><summary class="text-danger">Eliminar incidencia</summary>
-            <form method="post" action="/incidencias/{{ t.id }}/eliminar" class="mt-2" data-confirm="La incidencia dejará de verse en listados e informes. El historial se conserva. ¿Continuar?">{{ csrf_field() }}
+        <details class="mt-4 small"><summary class="text-danger">Eliminar ticket</summary>
+            <form method="post" action="/incidencias/{{ t.id }}/eliminar" class="mt-2" data-confirm="El ticket dejará de verse en listados e informes. El historial se conserva. ¿Continuar?">{{ csrf_field() }}
                 <input class="form-control form-control-sm mb-2" name="reason" required minlength="5" placeholder="Motivo (duplicada, creada por error…)" aria-label="Motivo">
                 <button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
         </details>
@@ -326,7 +326,7 @@
         <form method="post" action="/incidencias/{{ t.id }}/asignacion">{{ csrf_field() }}
             <label class="form-label small" for="a_owner">Responsable</label>
             <select class="form-select form-select-sm mb-2" id="a_owner" name="owner_user_id"><option value="">Sin asignar</option>{% for u in catalog.staff %}<option value="{{ u.id }}" {{ u.id == t.owner_user_id ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select>
-            <label class="form-label small" for="a_col">Colaboradores (incidencia compartida)</label>
+            <label class="form-label small" for="a_col">Colaboradores (ticket compartido)</label>
             {% set collab_ids = participants|filter(p => p.role == 'collaborator')|map(p => p.user_id) %}
             <select class="form-select form-select-sm mb-2" id="a_col" name="collaborators[]" multiple size="5">{% for u in catalog.staff %}<option value="{{ u.id }}" {{ u.id in collab_ids ? 'selected' }}>{{ u.name }}</option>{% endfor %}</select>
             <label class="form-label small" for="a_team">Equipo</label>

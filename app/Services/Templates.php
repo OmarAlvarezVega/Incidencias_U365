@@ -18,17 +18,17 @@ final class Templates
 {
     /** Variables disponibles y su descripción, para la pantalla de edición. */
     public const VARIABLES = [
-        'ticket.number' => 'Número de incidencia (INC-2026-000001)',
+        'ticket.number' => 'Número de ticket (INC-2026-000001)',
         'ticket.subject' => 'Asunto',
         'ticket.status' => 'Estado actual',
         'ticket.priority' => 'Prioridad',
-        'ticket.url' => 'Enlace interno a la incidencia (solo avisos a empleados)',
+        'ticket.url' => 'Enlace interno al ticket (solo avisos a empleados)',
         'client.name' => 'Nombre del cliente',
         'contact.name' => 'Nombre del contacto',
         'agent.name' => 'Empleado que responde',
         'message' => 'Texto de la respuesta o del aviso',
         'company.name' => 'Nombre de la empresa',
-        'tickets.list' => 'Lista de incidencias abiertas (WhatsApp, elección)',
+        'tickets.list' => 'Lista de tickets abiertos (WhatsApp, elección)',
         'reset.url' => 'Enlace para restablecer la contraseña',
         'reset.minutes' => 'Minutos de validez del enlace',
     ];
@@ -36,7 +36,7 @@ final class Templates
     /** @var array<string,array{name:string,channel:string,subject:?string,body:string}> */
     public const DEFAULTS = [
         'email:ticket_created_ack' => [
-            'name' => 'Acuse de recibo de nueva incidencia',
+            'name' => 'Acuse de recibo de nuevo ticket',
             'channel' => 'email',
             'subject' => '[{{ ticket.number }}] Hemos recibido tu solicitud: {{ ticket.subject }}',
             'body' => "Hola {{ contact.name }}:\n\nHemos registrado tu solicitud con el número {{ ticket.number }}.\nUn técnico la revisará lo antes posible. Para añadir información, responde a este correo sin cambiar el asunto.\n\nUn saludo,\n{{ company.name }}",
@@ -48,16 +48,16 @@ final class Templates
             'body' => "{{ message }}\n\n--\n{{ agent.name }}\n{{ company.name }}\nReferencia: {{ ticket.number }}. Responde a este correo sin cambiar el asunto.",
         ],
         'email:ticket_resolved' => [
-            'name' => 'Aviso de incidencia resuelta',
+            'name' => 'Aviso de ticket resuelto',
             'channel' => 'email',
-            'subject' => '[{{ ticket.number }}] Incidencia resuelta: {{ ticket.subject }}',
-            'body' => "Hola {{ contact.name }}:\n\nHemos marcado como resuelta la incidencia {{ ticket.number }}.\nSi el problema continúa, responde a este correo y la reabriremos.\n\nUn saludo,\n{{ company.name }}",
+            'subject' => '[{{ ticket.number }}] Ticket resuelto: {{ ticket.subject }}',
+            'body' => "Hola {{ contact.name }}:\n\nHemos marcado como resuelto el ticket {{ ticket.number }}.\nSi el problema continúa, responde a este correo y lo reabriremos.\n\nUn saludo,\n{{ company.name }}",
         ],
         'email:staff_notification' => [
             'name' => 'Aviso interno a empleados',
             'channel' => 'email',
             'subject' => '[{{ ticket.number }}] {{ message }}',
-            'body' => "{{ message }}\n\nIncidencia: {{ ticket.number }} · {{ ticket.subject }}\nCliente: {{ client.name }}\nPrioridad: {{ ticket.priority }} · Estado: {{ ticket.status }}\n\nAbrir: {{ ticket.url }}",
+            'body' => "{{ message }}\n\nTicket: {{ ticket.number }} · {{ ticket.subject }}\nCliente: {{ client.name }}\nPrioridad: {{ ticket.priority }} · Estado: {{ ticket.status }}\n\nAbrir: {{ ticket.url }}",
         ],
         'email:password_reset' => [
             'name' => 'Restablecer contraseña',
@@ -66,7 +66,7 @@ final class Templates
             'body' => "Hola:\n\nSe ha solicitado restablecer la contraseña de tu cuenta. Si no lo has pedido tú, ignora este correo.\n\nEnlace (válido {{ reset.minutes }} minutos, un solo uso):\n{{ reset.url }}\n\n{{ company.name }}",
         ],
         'whatsapp:ticket_created_ack' => [
-            'name' => 'WhatsApp: acuse de nueva incidencia',
+            'name' => 'WhatsApp: acuse de nuevo ticket',
             'channel' => 'whatsapp',
             'subject' => null,
             'body' => "Hemos registrado tu solicitud con el número {{ ticket.number }}. Te responderemos por aquí.",
@@ -78,10 +78,10 @@ final class Templates
             'body' => "{{ message }}\n\n— {{ agent.name }} ({{ ticket.number }})",
         ],
         'whatsapp:choose_ticket' => [
-            'name' => 'WhatsApp: elegir incidencia abierta',
+            'name' => 'WhatsApp: elegir ticket abierto',
             'channel' => 'whatsapp',
             'subject' => null,
-            'body' => "Tienes varias incidencias abiertas:\n{{ tickets.list }}\n\nResponde con el número de la lista para añadir tu mensaje a esa incidencia, o con NUEVA para abrir otra.",
+            'body' => "Tienes varios tickets abiertos:\n{{ tickets.list }}\n\nResponde con el número de la lista para añadir tu mensaje a ese ticket, o con NUEVA para abrir otro.",
         ],
         'whatsapp:ask_identification' => [
             'name' => 'WhatsApp: remitente no identificado',

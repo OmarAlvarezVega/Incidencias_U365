@@ -71,7 +71,7 @@
     <div class="col-md-6"><label class="form-label" for="f_usp">Remitentes que no son de ningún cliente</label>{% set usp = old('unknown_sender_policy', a.unknown_sender_policy ?? 'review') %}
         <select class="form-select" id="f_usp" name="unknown_sender_policy">
             <option value="review" {{ usp == 'review' ? 'selected' }}>Enviar a la cola de revisión (recomendado: filtra publicidad)</option>
-            <option value="create_pending" {{ usp == 'create_pending' ? 'selected' }}>Crear incidencia «sin identificar»</option>
+            <option value="create_pending" {{ usp == 'create_pending' ? 'selected' }}>Crear ticket «sin identificar»</option>
         </select></div>
     {{ f.input('poll_interval_minutes', 'Leer cada (minutos)', a.poll_interval_minutes ?? 5, {required: true, type: 'number', col: 'col-md-3'}) }}
     {{ f.input('max_attachment_mb', 'Máx. por adjunto (MB)', a.max_attachment_mb ?? 15, {required: true, type: 'number', col: 'col-md-3'}) }}

@@ -1,0 +1,38 @@
+{% extends 'layouts/app.twig' %}
+{% block title %}Actualización{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Actualización</h1><div class="subtitle">Versión instalada: <strong>{{ app_version }}</strong> · PHP {{ php_version }} · {{ db_version }}</div></div>
+</div>
+
+{% if log %}
+<div class="card mb-3 border-{{ log.ok ? 'success' : 'danger' }}"><div class="card-header">{{ log.ok ? 'Resultado' : 'La actualización ha fallado' }}</div>
+    <div class="card-body small">
+        <ul class="list-unstyled font-monospace mb-2">{% for l in log.lines %}<li class="text-break">{{ l }}</li>{% endfor %}</ul>
+        {% if not log.ok %}<p class="text-danger mb-0">No reintentes sin revisar el error. La base de datos puede haber quedado a medias: la copia <span class="font-monospace">{{ log.backup }}</span> está en Copias de seguridad. Sigue «Si algo sale mal» en docs/actualizacion.md.</p>{% endif %}
+    </div></div>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-danger small"><i class="bi bi-x-octagon"></i> {{ error }}</div>
+{% elseif pending %}
+<div class="card mb-3"><div class="card-header">Cambios de base de datos pendientes</div>
+    <ul class="list-group list-group-flush small">
+        {% for m in pending %}<li class="list-group-item"><span class="font-monospace">{{ m.version }}</span> {{ m.description }}</li>{% endfor %}
+    </ul>
+    <div class="card-body small">
+        <p>Al pulsar el botón se hace primero una <strong>copia de la base de datos</strong> y después se aplican los cambios. Si la copia falla, no se toca nada. Durante uno o dos minutos la aplicación puede ir lenta.</p>
+        <form method="post" action="/admin/actualizacion" data-loading>{{ csrf_field() }}
+            <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="confirm" value="1" id="confirm" required><label class="form-check-label" for="confirm">He subido el código nuevo completo y quiero aplicar los cambios ahora.</label></div>
+            <div class="form-actions"><button class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Copiar y actualizar la base de datos</button></div>
+        </form>
+    </div></div>
+{% else %}
+<div class="alert alert-success small"><i class="bi bi-check-circle"></i> La base de datos está al día con el código instalado.</div>
+{% endif %}
+
+<div class="card"><div class="card-header">Historial de migraciones</div><div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+    <thead><tr><th>Versión</th><th>Descripción</th><th>Aplicada</th></tr></thead>
+    <tbody>{% for a in applied %}<tr><td class="font-monospace">{{ a.version }}</td><td>{{ a.description }}</td><td>{{ a.applied_at|fecha }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

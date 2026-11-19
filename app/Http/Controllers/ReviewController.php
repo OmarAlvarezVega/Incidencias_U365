@@ -52,15 +52,15 @@ final class ReviewController extends Controller
             case 'crear':
                 $clientId = $this->request->int('client_id');
                 $ticketId = $mp->resolveReview($id, 'create', $clientId, $clientId !== null ? $this->request->int('contact_id') : null, null, $u, $this->request->bool('remember_sender'));
-                return $this->redirect('/incidencias/' . $ticketId, 'Incidencia creada a partir del correo.');
+                return $this->redirect('/incidencias/' . $ticketId, 'Ticket creado a partir del correo.');
             case 'anadir':
                 $num = strtoupper(trim($this->request->str('ticket_number')));
                 $ticketId = (int)$this->db()->value('SELECT id FROM tickets WHERE ticket_number = ? AND deleted_at IS NULL', [$num]);
                 if ($ticketId === 0) {
-                    throw ValidationException::single('ticket_number', 'No existe esa incidencia.');
+                    throw ValidationException::single('ticket_number', 'No existe ese ticket.');
                 }
                 $mp->resolveReview($id, 'attach', null, null, $ticketId, $u, false);
-                return $this->redirect('/incidencias/' . $ticketId, 'Correo añadido a la incidencia.');
+                return $this->redirect('/incidencias/' . $ticketId, 'Correo añadido al ticket.');
         }
         throw new ValidationException([], 'Acción no válida.');
     }

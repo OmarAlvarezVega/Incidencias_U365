@@ -39,7 +39,7 @@
 </div>
 <div class="col-lg-6">
     <div class="card mb-3"><div class="card-header">Comportamiento</div><div class="card-body">
-        <label class="form-label" for="amb">Si el contacto tiene varias incidencias abiertas</label>
+        <label class="form-label" for="amb">Si el contacto tiene varios tickets abiertos</label>
         <select class="form-select mb-3" id="amb" name="ambiguity_policy">
             <option value="ask_customer" {{ ambiguity == 'ask_customer' ? 'selected' }}>Preguntarle con una lista numerada (recomendado)</option>
             <option value="latest" {{ ambiguity == 'latest' ? 'selected' }}>Añadir el mensaje a la más reciente</option>
@@ -47,14 +47,14 @@
         <div class="fw-semibold small mb-1">Plantilla para escribir fuera de la ventana de 24 h</div>
         <p class="small text-muted">WhatsApp solo permite mensajes libres durante las 24 h siguientes al último mensaje del cliente. Después hace falta una plantilla aprobada por Meta en tu cuenta.</p>
         <div class="row g-2">
-            <div class="col-md-7"><label class="form-label small" for="tpln">Nombre de la plantilla en Meta</label><input class="form-control form-control-sm {{ error('tpl_name') ? 'is-invalid' }}" id="tpln" name="tpl_name" value="{{ old('tpl_name', tpl.name ?? '') }}" placeholder="seguimiento_incidencia">{% if error('tpl_name') %}<div class="invalid-feedback">{{ error('tpl_name') }}</div>{% endif %}</div>
+            <div class="col-md-7"><label class="form-label small" for="tpln">Nombre de la plantilla en Meta</label><input class="form-control form-control-sm {{ error('tpl_name') ? 'is-invalid' }}" id="tpln" name="tpl_name" value="{{ old('tpl_name', tpl.name ?? '') }}" placeholder="seguimiento_ticket">{% if error('tpl_name') %}<div class="invalid-feedback">{{ error('tpl_name') }}</div>{% endif %}</div>
             <div class="col-md-5"><label class="form-label small" for="tpll">Idioma</label><input class="form-control form-control-sm" id="tpll" name="tpl_lang" value="{{ old('tpl_lang', tpl.lang ?? 'es') }}" placeholder="es"></div>
             <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="tpl_with_text" value="1" id="tplt" {{ (tpl.with_text ?? false) ? 'checked' }}><label class="form-check-label small" for="tplt">La plantilla tiene una variable {{ '{{1}}' }} en el cuerpo donde va el texto de la respuesta</label></div>
         </div>
     </div></div>
     <div class="card mb-3"><div class="card-body">
         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="wen" name="enabled" value="1" {{ enabled ? 'checked' }}><label class="form-check-label fw-semibold" for="wen">WhatsApp activo</label></div>
-        <div class="form-text">Desactivado, los avisos de Meta se comprueban y se descartan (se les responde OK para que no reintenten): no se crean incidencias ni se envían mensajes.</div>
+        <div class="form-text">Desactivado, los avisos de Meta se comprueban y se descartan (se les responde OK para que no reintenten): no se crean tickets ni se envían mensajes.</div>
     </div></div>
 </div>
 </div>

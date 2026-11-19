@@ -276,7 +276,7 @@ final class MailProcessor
                 // Incidencia cerrada: se abre otra relacionada
                 $newId = $this->createTicket($acc, $emailId, $msg, $subject, $text, $html, $label, $fromEmail, $sender, $ticket);
                 $db->run('INSERT IGNORE INTO ticket_relations (ticket_id, related_ticket_id, relation_type, created_by, created_at) VALUES (?, ?, \'related\', NULL, ?)', [$newId, (int)$ticket['id'], Clock::nowDb()]);
-                $tickets->event($newId, null, 'relation_added', null, ['tipo' => 'related', 'incidencia' => $ticket['ticket_number'], 'motivo' => 'respuesta a incidencia cerrada']);
+                $tickets->event($newId, null, 'relation_added', null, ['tipo' => 'related', 'incidencia' => $ticket['ticket_number'], 'motivo' => 'respuesta a ticket cerrado']);
                 return;
             }
             $tmId = $tickets->addInbound($ticket, 'email', $sender['contact_id'], $label, $text, $html, $isAuto);
@@ -286,7 +286,7 @@ final class MailProcessor
         }
 
         if ($isAuto) {
-            $this->finish($emailId, 'ignored', 'none', null, null, 'Respuesta automática sin incidencia asociada.');
+            $this->finish($emailId, 'ignored', 'none', null, null, 'Respuesta automática sin ticket asociado.');
             return;
         }
 

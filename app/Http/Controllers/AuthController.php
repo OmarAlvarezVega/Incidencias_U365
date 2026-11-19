@@ -21,7 +21,7 @@ final class AuthController extends Controller
 {
     public function showLogin(): Response
     {
-        return $this->render('auth/login.twig');
+        return $this->render('auth/login.twig', ['remember_days' => $this->app->auth()->rememberDays()]);
     }
 
     public function login(): Response
@@ -42,6 +42,9 @@ final class AuthController extends Controller
         }
         $intended = $session->get('intended');
         $this->app->auth()->login($uid, $this->request);
+        if ($this->request->bool('remember')) {
+            $this->app->auth()->rememberDevice($uid, $this->request);
+        }
         $session->remove('intended');
         $to = is_string($intended) && str_starts_with($intended, '/') && !str_starts_with($intended, '//') ? $intended : '/';
         return $this->redirect($to);

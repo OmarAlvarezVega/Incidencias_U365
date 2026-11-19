@@ -2,8 +2,8 @@
 {% import 'partials/macros.twig' as m %}
 {% block title %}Revisión de entrada{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Revisión de entrada</h1><div class="subtitle">Correos de remitentes que no son de ningún cliente. Decide si crear incidencia, añadirlos a una existente o descartarlos.</div></div>
-{% if unidentified %}<a class="btn btn-outline-warning btn-sm" href="/incidencias?vista=sin_identificar">{{ unidentified }} incidencias sin identificar</a>{% endif %}</div>
+<div class="page-header"><div><h1>Revisión de entrada</h1><div class="subtitle">Correos de remitentes que no son de ningún cliente. Decide si crear ticket, añadirlos a uno existente o descartarlos.</div></div>
+{% if unidentified %}<a class="btn btn-outline-warning btn-sm" href="/incidencias?vista=sin_identificar">{{ unidentified }} tickets sin identificar</a>{% endif %}</div>
 {% for r in rows %}
 <div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between gap-2">
     <span><i class="bi bi-envelope"></i> <strong>{{ r.from_address }}</strong> · {{ r.subject ?: '(sin asunto)' }}</span>
@@ -18,12 +18,12 @@
                 {% for c in clients %}<option value="{{ c.id }}" {{ r.suggest|length == 1 and r.suggest[0].id == c.id ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
             <div class="col-md-6"><select class="form-select form-select-sm" id="rc{{ r.id }}" name="contact_id" aria-label="Contacto"><option value="">Sin contacto</option></select></div>
             <div class="col-md-8"><div class="form-check small"><input class="form-check-input" type="checkbox" name="remember_sender" value="1" id="rem{{ r.id }}" checked><label class="form-check-label" for="rem{{ r.id }}">Añadir este correo al contacto elegido</label></div></div>
-            <div class="col-md-4"><button class="btn btn-sm btn-primary w-100">Crear incidencia</button></div>
+            <div class="col-md-4"><button class="btn btn-sm btn-primary w-100">Crear ticket</button></div>
         </form>
         </div>
         <div class="col-lg-5">
         <form method="post" action="/revision/{{ r.id }}" class="d-flex gap-2 mb-2">{{ csrf_field() }}<input type="hidden" name="accion" value="anadir">
-            <input class="form-control form-control-sm" name="ticket_number" placeholder="INC-2026-000123" required aria-label="Número de incidencia"><button class="btn btn-sm btn-outline-primary text-nowrap">Añadir a incidencia</button></form>
+            <input class="form-control form-control-sm" name="ticket_number" placeholder="INC-2026-000123" required aria-label="Número de ticket"><button class="btn btn-sm btn-outline-primary text-nowrap">Añadir a ticket</button></form>
         <form method="post" action="/revision/{{ r.id }}" data-confirm="El correo se marcará como descartado (no se borra).">{{ csrf_field() }}<input type="hidden" name="accion" value="ignorar"><button class="btn btn-sm btn-outline-danger">Descartar (spam, publicidad…)</button></form>
         </div>
     </div>

@@ -31,16 +31,16 @@
             {% if c.anonymized_at %}<span class="badge text-bg-warning ms-1">Anonimizado</span>{% endif %}</div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        {% if can('tickets.create') %}<a class="btn btn-primary btn-sm" href="/incidencias/nueva?cliente={{ c.id }}"><i class="bi bi-plus-lg"></i> Nueva incidencia</a>{% endif %}
+        {% if can('tickets.create') %}<a class="btn btn-primary btn-sm" href="/incidencias/nueva?cliente={{ c.id }}"><i class="bi bi-plus-lg"></i> Nuevo ticket</a>{% endif %}
         {% if can('clients.manage') %}
         <a class="btn btn-outline-secondary btn-sm" href="/clientes/{{ c.id }}/editar"><i class="bi bi-pencil"></i> Editar</a>
-        <form method="post" action="/clientes/{{ c.id }}/eliminar" data-confirm="Se eliminará el cliente. Sus incidencias se conservan, pero dejará de aparecer en listados y búsquedas.">{{ csrf_field() }}<button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Eliminar</button></form>
+        <form method="post" action="/clientes/{{ c.id }}/eliminar" data-confirm="Se eliminará el cliente. Sus tickets se conservan, pero dejará de aparecer en listados y búsquedas.">{{ csrf_field() }}<button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Eliminar</button></form>
         {% endif %}
     </div>
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Abiertas</div><div class="kpi-value">{{ stats.open ?? 0 }}</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Abiertos</div><div class="kpi-value">{{ stats.open ?? 0 }}</div></div></div></div>
     <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Total histórico</div><div class="kpi-value">{{ stats.total ?? 0 }}</div></div></div></div>
     <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Últimos 90 días</div><div class="kpi-value">{{ stats.last_90 ?? 0 }}</div></div></div></div>
     <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body"><div class="kpi-label">Tiempo dedicado</div><div class="kpi-value">{{ (stats.minutes ?? 0)|minutos }}</div></div></div></div>
@@ -48,7 +48,7 @@
 
 <div class="row g-3">
 <div class="col-lg-8">
-    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>Incidencias</span><a class="small" href="/incidencias?vista=todas&cliente={{ c.id }}">Ver todas</a></div>
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>Tickets</span><a class="small" href="/incidencias?vista=todas&cliente={{ c.id }}">Ver todos</a></div>
     <div class="table-responsive"><table class="table table-hover align-middle mb-0">
         <tbody>
         {% for t in tickets %}
@@ -60,7 +60,7 @@
                 <td class="small text-muted text-nowrap">{{ t.last_activity_at|hace }}</td>
             </tr>
         {% else %}
-            <tr><td class="empty-state"><i class="bi bi-inbox"></i>Este cliente no tiene incidencias visibles para ti.</td></tr>
+            <tr><td class="empty-state"><i class="bi bi-inbox"></i>Este cliente no tiene tickets visibles para ti.</td></tr>
         {% endfor %}
         </tbody>
     </table></div></div>

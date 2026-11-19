@@ -12,7 +12,7 @@ final class PasswordPolicy
     /** Lista local reducida de contraseñas muy comunes (sin llamadas externas). */
     private const COMMON = [
         '123456789012', 'password1234', 'contraseña123', 'contrasena123', 'qwertyuiop12', 'administrador',
-        'administrator', 'univers365', 'univers3652024', 'univers3652025', 'univers3652026', 'incidencias1',
+        'administrator', 'univers365', 'univers3652024', 'univers3652025', 'univers3652026', 'incidencias1', 'tickets1',
         'soporte12345', 'bienvenido123', 'iloveyou1234', '000000000000', '111111111111', 'abcdefghijkl',
         'passw0rd1234', 'p@ssw0rd1234', 'madrid123456', 'barcelona123', 'españa123456', 'qwerty123456',
     ];

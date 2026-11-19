@@ -78,6 +78,7 @@ final class ProfileController extends Controller
         // Cierra las demás sesiones y mantiene esta
         $this->db()->run('UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL', [Clock::nowDb(), $u->id]);
         $this->app->auth()->refreshVersion($u->id);
+        $this->app->auth()->keepThisDevice($u->id);
         $this->audit()->log('user.password_changed', 'user', $u->id);
         return $this->redirect('/perfil', 'Contraseña cambiada. Se han cerrado tus otras sesiones.');
     }
@@ -107,6 +108,8 @@ final class ProfileController extends Controller
             'UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL AND id <> ?',
             [Clock::nowDb(), $u->id, (string)$this->app->session()->get('sid_hash')]
         );
+        $selector = $this->app->session()->get('remember_selector');
+        $this->app->auth()->revokeRemembered($u->id, is_string($selector) ? $selector : null);
         $this->audit()->log('user.sessions_closed', 'user', $u->id);
         return $this->redirect('/perfil', 'Se han cerrado tus otras sesiones.');
     }

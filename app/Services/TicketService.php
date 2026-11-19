@@ -176,7 +176,7 @@ final class TicketService
         if ($ownerId !== null) {
             $n->notify([$ownerId], 'ticket.assigned', $ticketId, 'Te han asignado ' . $t['ticket_number'], (string)$t['subject'], "assigned.$ticketId.$ownerId", $actorId);
         } else {
-            $n->notify($n->supervisors($teamId), 'ticket.unassigned_new', $ticketId, 'Nueva incidencia sin asignar: ' . $t['ticket_number'], (string)$t['subject'], "new.$ticketId", $actorId);
+            $n->notify($n->supervisors($teamId), 'ticket.unassigned_new', $ticketId, 'Nuevo ticket sin asignar: ' . $t['ticket_number'], (string)$t['subject'], "new.$ticketId", $actorId);
         }
         if ($collaborators !== []) {
             $n->notify($collaborators, 'ticket.collaborator', $ticketId, 'Colaboras en ' . $t['ticket_number'], (string)$t['subject'], "collab.$ticketId", $actorId);
@@ -233,7 +233,7 @@ final class TicketService
             array_merge(array_values($set), [(int)$ticket['id'], $lockVersion])
         )->rowCount();
         if ($n === 0) {
-            throw new ValidationException([], 'Otra persona ha modificado esta incidencia mientras la editabas. Recarga la página y vuelve a aplicar tus cambios.');
+            throw new ValidationException([], 'Otra persona ha modificado este ticket mientras lo editabas. Recarga la página y vuelve a aplicar tus cambios.');
         }
         $this->event((int)$ticket['id'], $actor->id, 'updated', $diffOld, $diffNew);
     }
@@ -258,7 +258,7 @@ final class TicketService
             }
         }
         if (!$system && $to['code'] === 'in_progress' && $ticket['owner_user_id'] === null) {
-            throw new ValidationException([], 'Asigna un responsable antes de pasar la incidencia a «En curso».');
+            throw new ValidationException([], 'Asigna un responsable antes de pasar el ticket a «En curso».');
         }
         $now = Clock::nowDb();
         $set = ['status_id' => $toStatusId, 'updated_at' => $now, 'last_activity_at' => $now];
@@ -283,7 +283,7 @@ final class TicketService
                 array_merge(array_values($set), [(int)$ticket['id'], $fromId])
             )->rowCount();
             if ($n === 0) {
-                throw new ValidationException([], 'El estado de la incidencia acaba de cambiar. Recarga la página.');
+                throw new ValidationException([], 'El estado del ticket acaba de cambiar. Recarga la página.');
             }
             $db->insert('ticket_status_history', ['ticket_id' => (int)$ticket['id'], 'from_status_id' => $fromId, 'to_status_id' => $toStatusId, 'changed_by' => $actor?->id, 'changed_at' => $now]);
             $this->event((int)$ticket['id'], $actor?->id, $isReopen ? 'reopened' : 'status_changed', ['estado' => $from['name']], ['estado' => $to['name']]);
@@ -326,7 +326,7 @@ final class TicketService
         $tid = (int)$ticket['id'];
         $currentOwner = $ticket['owner_user_id'] !== null ? (int)$ticket['owner_user_id'] : null;
         if ($currentOwner !== null && $currentOwner !== $ownerId && !$actor->can('tickets.reassign') && $currentOwner !== $actor->id) {
-            throw HttpException::forbidden('No tienes permiso para cambiar el responsable de una incidencia ya asignada.');
+            throw HttpException::forbidden('No tienes permiso para cambiar el responsable de un ticket ya asignado.');
         }
         $collaborators = array_values(array_unique(array_diff(array_map('intval', $collaborators), [$ownerId ?? 0])));
         $this->assertStaff(array_merge($ownerId !== null ? [$ownerId] : [], $collaborators));
@@ -435,7 +435,7 @@ final class TicketService
         }
         if ($channel === 'email') {
             if ($this->customerEmail($ticket) === null) {
-                throw ValidationException::single('channel', 'Esta incidencia no tiene un correo de cliente al que responder.');
+                throw ValidationException::single('channel', 'Este ticket no tiene un correo de cliente al que responder.');
             }
             if ($this->app->make(Mail\EmailAccounts::class)->default() === null) {
                 throw ValidationException::single('channel', 'No hay ningún buzón de correo configurado para enviar.');
@@ -594,10 +594,10 @@ final class TicketService
             throw ValidationException::single('relation_type', 'Tipo de relación no válido.');
         }
         if ($relatedId === (int)$ticket['id']) {
-            throw ValidationException::single('related', 'Una incidencia no puede relacionarse consigo misma.');
+            throw ValidationException::single('related', 'Un ticket no puede relacionarse consigo mismo.');
         }
         if ($this->app->make(TicketAccess::class)->visible($actor, $relatedId) === null) {
-            throw ValidationException::single('related', 'No existe esa incidencia o no tienes acceso a ella.');
+            throw ValidationException::single('related', 'No existe ese ticket o no tienes acceso a él.');
         }
         $db->run('INSERT IGNORE INTO ticket_relations (ticket_id, related_ticket_id, relation_type, created_by, created_at) VALUES (?, ?, ?, ?, ?)',
             [(int)$ticket['id'], $relatedId, $type, $actor->id, Clock::nowDb()]);

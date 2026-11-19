@@ -149,6 +149,8 @@ final class Routes
         $r->post('/admin/procesos/ejecutar', [A\ProcessController::class, 'run'], ['perm' => 'settings.manage']);
         $r->post("/admin/procesos/trabajos/$id/reintentar", [A\ProcessController::class, 'retry'], ['perm' => 'settings.manage']);
         $r->post('/admin/procesos/clave-cron', [A\ProcessController::class, 'cronKey'], ['perm' => 'settings.manage']);
+        $r->get('/admin/actualizacion', [A\UpdateController::class, 'index'], ['perm' => 'backups.manage']);
+        $r->post('/admin/actualizacion', [A\UpdateController::class, 'migrate'], ['perm' => 'backups.manage']);
         $r->get('/admin/copias', [A\BackupController::class, 'index'], ['perm' => 'backups.manage']);
         $r->post('/admin/copias', [A\BackupController::class, 'create'], ['perm' => 'backups.manage']);
         $r->post('/admin/copias/verificar', [A\BackupController::class, 'verify'], ['perm' => 'backups.manage']);

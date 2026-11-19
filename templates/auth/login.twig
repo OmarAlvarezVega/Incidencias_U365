@@ -1,7 +1,7 @@
 {% extends 'layouts/auth.twig' %}
 {% block title %}Iniciar sesión{% endblock %}
 {% block content %}
-<h1 class="h4 fw-bold mb-1">Gestión de incidencias</h1>
+<h1 class="h4 fw-bold mb-1">Gestión de tickets</h1>
 <p class="text-muted small mb-4">Accede con tu usuario o correo corporativo.</p>
 <form method="post" action="/login" novalidate>
     {{ csrf_field() }}
@@ -13,6 +13,13 @@
         <label class="form-label" for="password">Contraseña</label>
         <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
     </div>
+    {% if remember_days > 0 %}
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="remember" name="remember" value="1">
+        <label class="form-check-label" for="remember">Mantener la sesión iniciada en este dispositivo ({{ remember_days }} días)</label>
+        <div class="form-text">Solo en tu ordenador o móvil personal, nunca en uno compartido.</div>
+    </div>
+    {% endif %}
     <button class="btn btn-primary w-100" type="submit">Entrar</button>
 </form>
 <div class="text-center mt-3"><a class="small" href="/recuperar">¿Has olvidado tu contraseña?</a></div>

@@ -5,10 +5,10 @@
 En un ordenador con PHP 8.2+ y Composer (no en IONOS):
 
 ```bash
-bin/build-release.sh 1.0.0
+bin/build-release.sh 1.1.0
 ```
 
-Genera `build/univers365-incidencias-1.0.0.zip` con `vendor/` instalado sin
+Genera `build/univers365-incidencias-1.1.0.zip` con `vendor/` instalado sin
 dependencias de desarrollo y **sin** `.git`, `tests/`, `config/config.php`,
 `config/app.key`, contenido de `storage/` ni el diagnóstico. Al final muestra
 la huella SHA-256 del ZIP.
@@ -21,13 +21,18 @@ la huella SHA-256 del ZIP.
 3. Copia también, fuera del servidor, `config/config.php` y `config/app.key`.
 4. Sube por SFTP el contenido del ZIP **encima** de la instalación,
    sustituyendo `app/`, `bin/`, `database/`, `public/`, `templates/`,
-   `vendor/` y `docs/`. **No toques** `config/` ni `storage/`.
+   `vendor/`, `docs/` y los ficheros `VERSION` y `REVISION` de la raíz. **No toques** `config/` ni `storage/`.
    Para minimizar el tiempo a medias, sube primero a una carpeta temporal y
    renómbrala después si el SFTP lo permite.
 5. Aplica las migraciones nuevas:
+   - **Sin SSH (IONOS):** entra como superadministrador en
+     Administración → Actualización. La pantalla muestra la versión subida y
+     los cambios de base de datos pendientes (también aparece un aviso
+     amarillo en todas las páginas). Marca la casilla y pulsa «Copiar y
+     actualizar la base de datos»: primero crea una copia de la base de datos
+     (si la copia falla, no migra) y después aplica los cambios. Descarga esa
+     copia desde Copias de seguridad.
    - Con SSH: `php bin/migrate.php --status` y luego `php bin/migrate.php`.
-   - Sin SSH: **[Pendiente]** no hay todavía pantalla de migraciones; hay que
-     usar SSH o pedir que se añada (ver `docs/pendientes.md`).
 6. Entra, revisa el panel y Administración → Procesos.
 
 Las migraciones son **inmutables**: si un fichero ya aplicado ha cambiado,

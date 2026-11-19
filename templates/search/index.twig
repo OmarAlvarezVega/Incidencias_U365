@@ -5,8 +5,8 @@
 <div class="page-header"><div><h1>Búsqueda</h1><div class="subtitle">Resultados para «{{ q }}»</div></div></div>
 <form class="mb-3" method="get" action="/buscar"><div class="input-group" style="max-width:560px"><input class="form-control" name="q" value="{{ q }}" minlength="2" aria-label="Texto a buscar"><button class="btn btn-primary">Buscar</button></div></form>
 {% set any = results.tickets or results.clients or results.contacts or results.messages %}
-{% if not any %}<div class="card"><div class="empty-state"><i class="bi bi-search"></i>No hay resultados. Prueba con el número de incidencia, el NIF, un correo o parte del asunto.</div></div>{% endif %}
-{% if results.tickets %}<div class="card mb-3"><div class="card-header">Incidencias</div><ul class="list-group list-group-flush">
+{% if not any %}<div class="card"><div class="empty-state"><i class="bi bi-search"></i>No hay resultados. Prueba con el número de ticket, el NIF, un correo o parte del asunto.</div></div>{% endif %}
+{% if results.tickets %}<div class="card mb-3"><div class="card-header">Tickets</div><ul class="list-group list-group-flush">
 {% for t in results.tickets %}<li class="list-group-item"><span class="ticket-number">{{ t.ticket_number }}</span> {{ m.status(t.status, t.status_color) }} <a class="row-link" href="{{ t.url }}">{{ t.subject }}</a> <span class="small text-muted">{{ t.client }}</span></li>{% endfor %}
 </ul></div>{% endif %}
 {% if results.clients %}<div class="card mb-3"><div class="card-header">Clientes</div><ul class="list-group list-group-flush">

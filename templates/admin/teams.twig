@@ -24,10 +24,10 @@
 {% endmacro %}
 {% block content %}
 {% import _self as s %}
-<div class="page-header"><div><h1>Equipos</h1><div class="subtitle">Agrupan empleados. El coordinador ve y reparte las incidencias de su equipo.</div></div></div>
+<div class="page-header"><div><h1>Equipos</h1><div class="subtitle">Agrupan empleados. El coordinador ve y reparte los tickets de su equipo.</div></div></div>
 {% for t in teams %}
 <div class="card mb-3" id="equipo-{{ t.id }}">
-    <div class="card-header d-flex justify-content-between"><span><strong>{{ t.name }}</strong>{% if not t.active %} <span class="badge text-bg-secondary">Inactivo</span>{% endif %}</span><span class="small text-muted">{{ (members[t.id] ?? [])|length }} miembros · {{ t.open_tickets }} incidencias abiertas</span></div>
+    <div class="card-header d-flex justify-content-between"><span><strong>{{ t.name }}</strong>{% if not t.active %} <span class="badge text-bg-secondary">Inactivo</span>{% endif %}</span><span class="small text-muted">{{ (members[t.id] ?? [])|length }} miembros · {{ t.open_tickets }} tickets abiertos</span></div>
     <div class="card-body">
         <details><summary class="small text-primary">Editar</summary><div class="pt-2">{{ s.team_form(t, members, staff) }}</div></details>
     </div>

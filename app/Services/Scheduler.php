@@ -22,7 +22,7 @@ final class Scheduler
         'audit.seal' => [0, 'Sellado de la cadena de auditoría'],
         'sla.check' => [5, 'Avisos e incumplimientos de SLA'],
         'timers.stale' => [30, 'Cierre de temporizadores olvidados (> 12 h)'],
-        'tickets.autoclose' => [60, 'Cierre automático de incidencias resueltas'],
+        'tickets.autoclose' => [60, 'Cierre automático de tickets resueltos'],
         'cleanup' => [1440, 'Limpieza de datos temporales'],
         'backup.auto' => [1440, 'Copia de seguridad diaria (si está activada)'],
     ];
@@ -151,6 +151,11 @@ final class Scheduler
                 $n += $db->run('DELETE FROM login_attempts WHERE attempted_at < ?', [Clock::now()->modify('-90 days')->format(Clock::DB_FORMAT)])->rowCount();
                 $n += $db->run('DELETE FROM password_resets WHERE expires_at < ?', [Clock::now()->modify('-7 days')->format(Clock::DB_FORMAT)])->rowCount();
                 $n += $db->run('DELETE FROM user_sessions WHERE last_seen_at < ?', [Clock::now()->modify('-30 days')->format(Clock::DB_FORMAT)])->rowCount();
+                try {
+                    $n += $db->run('DELETE FROM remember_tokens WHERE expires_at < ? OR revoked_at < ?', [Clock::nowDb(), Clock::now()->modify('-30 days')->format(Clock::DB_FORMAT)])->rowCount();
+                } catch (\PDOException) {
+                    // Migración 0004 pendiente
+                }
                 $n += $db->run("DELETE FROM notifications WHERE read_at IS NOT NULL AND read_at < ?", [Clock::now()->modify('-180 days')->format(Clock::DB_FORMAT)])->rowCount();
                 $n += $this->app->make(Jobs::class)->purge(30);
                 $n += $db->run('DELETE FROM scheduled_task_runs WHERE started_at < ?', [Clock::now()->modify('-30 days')->format(Clock::DB_FORMAT)])->rowCount();

@@ -22,6 +22,8 @@ final class App
     /** @var array<string,object> */
     private array $instances = [];
 
+    private ?string $version = null;
+
     /** @param array<string,mixed> $config */
     public function __construct(public readonly string $root, private readonly array $config)
     {
@@ -71,6 +73,17 @@ final class App
     public function isProduction(): bool
     {
         return ($this->config['env'] ?? 'production') === 'production';
+    }
+
+    /** Versión instalada: el fichero VERSION que genera bin/build-release.sh. */
+    public function version(): string
+    {
+        if ($this->version === null) {
+            $f = $this->root . '/VERSION';
+            $v = is_file($f) ? trim((string)file_get_contents($f)) : '';
+            $this->version = preg_match('/^\d+\.\d+\.\d+$/', $v) ? $v : 'desarrollo';
+        }
+        return $this->version;
     }
 
     public function storagePath(string $sub = ''): string

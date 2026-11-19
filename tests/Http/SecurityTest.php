@@ -174,4 +174,125 @@ final class SecurityTest extends TestCase
         $r = HttpServer::request('POST', '/cron/run', ['task' => 'jobs.process']);
         $this->assertContains($r['status'], [401, 403, 404]);
     }
+
+    /** Inicia sesión marcando «mantener la sesión iniciada». */
+    private static function loginRemembered(string $email): string
+    {
+        $jar = tempnam(TestEnv::dir(), 'cookies');
+        $token = HttpServer::csrf('/login', $jar);
+        $r = HttpServer::request('POST', '/login', ['_token' => $token, 'identifier' => $email, 'password' => TestEnv::PASSWORD, 'remember' => '1'], [], $jar);
+        if (!in_array($r['status'], [302, 303], true)) {
+            throw new \RuntimeException("Login fallido (HTTP {$r['status']})");
+        }
+        return $jar;
+    }
+
+    /** Simula cerrar el navegador: se pierde la cookie de sesión, se conserva la recordada. */
+    private static function dropSessionCookie(string $jar): void
+    {
+        $lines = file($jar) ?: [];
+        $keep = array_filter($lines, static fn ($l) => (explode("\t", rtrim($l, "\n"))[5] ?? '') !== 'u365');
+        file_put_contents($jar, implode('', $keep));
+    }
+
+    private static function rememberCookie(string $jar): ?string
+    {
+        foreach (file($jar) ?: [] as $l) {
+            $f = explode("\t", rtrim($l, "\n"));
+            if (($f[5] ?? '') === 'u365r') {
+                return $f[6] ?? null;
+            }
+        }
+        return null;
+    }
+
+    private static function isLoggedIn(string $jar): bool
+    {
+        $r = HttpServer::request('GET', '/', null, [], $jar);
+        return $r['status'] === 200;
+    }
+
+    public function testSesionRecordadaSobreviveAlCierreDelNavegador(): void
+    {
+        TestEnv::user('technician', 'recordar@pruebas.test');
+        $jar = self::loginRemembered('recordar@pruebas.test');
+        $cookie = self::rememberCookie($jar);
+        $this->assertNotNull($cookie);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{24}\.[a-f0-9]{64}$/', (string)$cookie);
+        // En la base de datos solo está el hash del validador
+        [$selector, $validator] = explode('.', (string)$cookie);
+        $hash = TestEnv::db()->value('SELECT validator_hash FROM remember_tokens WHERE selector = ?', [$selector]);
+        $this->assertSame(hash('sha256', $validator), $hash);
+        $this->assertSame(0, (int)TestEnv::db()->value('SELECT COUNT(*) FROM remember_tokens WHERE validator_hash = ?', [$validator]));
+
+        self::dropSessionCookie($jar);
+        $this->assertTrue(self::isLoggedIn($jar), 'Con la cookie recordada debe seguir dentro');
+
+        // Sin marcar la casilla, cerrar el navegador sí cierra la sesión
+        $plain = HttpServer::login('recordar@pruebas.test');
+        $this->assertNull(self::rememberCookie($plain));
+        self::dropSessionCookie($plain);
+        $this->assertFalse(self::isLoggedIn($plain));
+    }
+
+    public function testSesionRecordadaManipuladaSeRechaza(): void
+    {
+        TestEnv::user('technician', 'manipular@pruebas.test');
+        $jar = self::loginRemembered('manipular@pruebas.test');
+        self::dropSessionCookie($jar);
+        $cookie = (string)self::rememberCookie($jar);
+        $bad = substr($cookie, 0, -1) . ($cookie[-1] === 'a' ? 'b' : 'a');
+        file_put_contents($jar, str_replace($cookie, $bad, (string)file_get_contents($jar)));
+        $this->assertFalse(self::isLoggedIn($jar));
+    }
+
+    public function testCerrarSesionRevocaElDispositivo(): void
+    {
+        TestEnv::user('technician', 'salir@pruebas.test');
+        $jar = self::loginRemembered('salir@pruebas.test');
+        $stolen = (string)file_get_contents($jar);
+        $token = HttpServer::csrf('/', $jar);
+        HttpServer::request('POST', '/logout', ['_token' => $token], [], $jar);
+        // Quien copió la cookie antes de salir ya no puede entrar
+        file_put_contents($jar, $stolen);
+        self::dropSessionCookie($jar);
+        $this->assertFalse(self::isLoggedIn($jar));
+    }
+
+    public function testCambioDeVersionDeSesionYAjusteCeroDesactivan(): void
+    {
+        $uid = TestEnv::user('technician', 'revocar@pruebas.test');
+        $jar = self::loginRemembered('revocar@pruebas.test');
+        self::dropSessionCookie($jar);
+        // Desactivación, bloqueo o cambio de contraseña suben session_version
+        TestEnv::db()->run('UPDATE users SET session_version = session_version + 1 WHERE id = ?', [$uid]);
+        $this->assertFalse(self::isLoggedIn($jar));
+
+        $jar2 = self::loginRemembered('revocar@pruebas.test');
+        self::dropSessionCookie($jar2);
+        TestEnv::app()->settings()->set('security.remember_days', 0);
+        try {
+            $this->assertFalse(self::isLoggedIn($jar2), 'Con 0 días la función queda desactivada');
+        } finally {
+            TestEnv::app()->settings()->set('security.remember_days', 180);
+        }
+    }
+
+    public function testVersionVisibleYActualizacionSoloSuperadmin(): void
+    {
+        $r = HttpServer::request('GET', '/login');
+        $this->assertStringContainsString('versión', $r['body']);
+        $admin = HttpServer::login(TestEnv::ADMIN_EMAIL);
+        $r = HttpServer::request('GET', '/admin/actualizacion', null, [], $admin);
+        $this->assertSame(200, $r['status']);
+        $this->assertStringContainsString('al día', $r['body']);
+
+        TestEnv::user('technician', 'tecnico.update@pruebas.test');
+        $tech = HttpServer::login('tecnico.update@pruebas.test');
+        $r = HttpServer::request('GET', '/admin/actualizacion', null, [], $tech);
+        $this->assertContains($r['status'], [403, 404]);
+        $token = HttpServer::csrf('/', $tech);
+        $r = HttpServer::request('POST', '/admin/actualizacion', ['_token' => $token, 'confirm' => '1'], [], $tech);
+        $this->assertContains($r['status'], [403, 404]);
+    }
 }

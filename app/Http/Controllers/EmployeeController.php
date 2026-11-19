@@ -28,7 +28,7 @@ final class EmployeeController extends Controller
     ];
     private const LABELS = [
         'first_name' => 'El nombre', 'last_name' => 'Los apellidos', 'email' => 'El correo', 'username' => 'El usuario',
-        'role_id' => 'El rol', 'corporate_phone' => 'El teléfono', 'hired_on' => 'La fecha de alta', 'max_open_tickets' => 'El límite de incidencias',
+        'role_id' => 'El rol', 'corporate_phone' => 'El teléfono', 'hired_on' => 'La fecha de alta', 'max_open_tickets' => 'El límite de tickets',
         'left_on' => 'La fecha de baja', 'team_ids' => 'Los equipos', 'lead_team_ids' => 'Los equipos que coordina',
     ];
 
@@ -174,7 +174,7 @@ final class EmployeeController extends Controller
         if ($status !== 'active') {
             $open = (int)$this->db()->value("SELECT COUNT(*) FROM tickets t JOIN ticket_statuses s ON s.id = t.status_id WHERE t.owner_user_id = ? AND s.phase IN ('new','open','pending') AND t.deleted_at IS NULL", [(int)$e['id']]);
             if ($open > 0) {
-                $msg .= " Tiene $open incidencias abiertas: reasígnalas desde su ficha.";
+                $msg .= " Tiene $open tickets abiertos: reasígnalos desde su ficha.";
             }
         }
         return $this->redirect('/empleados/' . $e['id'], $msg);
@@ -217,7 +217,7 @@ final class EmployeeController extends Controller
             throw ValidationException::single('to_user_id', 'Elige otro empleado.');
         }
         $n = $this->svc()->reassignOpenTickets((int)$e['id'], $to, $this->user(), $this->request->bool('include_collaborations'));
-        return $this->redirect('/empleados/' . $e['id'], $n === 1 ? 'Se ha reasignado 1 incidencia.' : "Se han reasignado $n incidencias.");
+        return $this->redirect('/empleados/' . $e['id'], $n === 1 ? 'Se ha reasignado 1 ticket.' : "Se han reasignado $n tickets.");
     }
 
     /** @return array<string,mixed> */

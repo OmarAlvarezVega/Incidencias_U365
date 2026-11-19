@@ -53,7 +53,8 @@ final class View
             'current_user' => $this->user,
             'current_path' => $this->request?->path ?? '/',
             'flashes' => $session->isStarted() ? $session->takeFlash() : [],
-            'app_name' => 'UNIVERS365 Incidencias',
+            'app_name' => 'UNIVERS365 Tickets',
+            'app_version' => $this->app->version(),
         ];
         return $this->twig->render($template, $data + $globals);
     }
@@ -138,6 +139,17 @@ final class View
                 return 0;
             }
             return (int)$this->app->db()->value('SELECT COUNT(*) FROM notifications WHERE user_id = ? AND read_at IS NULL', [$this->user->id]);
+        }));
+        // Migraciones sin aplicar (solo se calcula para el superadministrador)
+        $t->addFunction(new TwigFunction('pending_migrations', function () {
+            if ($this->user === null || $this->user->roleCode !== 'superadmin') {
+                return 0;
+            }
+            try {
+                return count((new \App\Services\Migrator($this->app->db(), $this->app->root . '/database/migrations'))->pending());
+            } catch (\Throwable) {
+                return 1;
+            }
         }));
         $t->addFunction(new TwigFunction('setting', fn (string $key, mixed $default = null) => $this->app->settings()->get($key, $default)));
     }

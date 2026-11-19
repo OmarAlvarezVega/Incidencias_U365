@@ -18,7 +18,7 @@
             <div class="alert alert-{{ f.type == 'danger' ? 'danger' : (f.type == 'warning' ? 'warning' : (f.type == 'info' ? 'info' : 'success')) }} py-2 small">{{ f.message }}</div>
         {% endfor %}
         {% block content %}{% endblock %}
-        <p class="text-muted small mt-4 mb-0">UNIVERS365 TECHNOLOGY · Gestión de incidencias</p>
+        <p class="text-muted small mt-4 mb-0">UNIVERS365 TECHNOLOGY · Gestión de tickets · versión {{ app_version }}</p>
     </div>
 </div>
 </body>

@@ -25,12 +25,12 @@
 {{ csrf_field() }}
 <div class="row g-3">
 <div class="col-lg-6">
-    <div class="card mb-3"><div class="card-header">General e incidencias</div><div class="card-body">
+    <div class="card mb-3"><div class="card-header">General y tickets</div><div class="card-body">
         {{ s.row('company.name', fields, values, 'Aparece en correos y plantillas.') }}
         <div class="mb-3"><label class="form-label" for="tickets__default_priority">Prioridad predeterminada</label>
             <select class="form-select" style="max-width: 16rem" id="tickets__default_priority" name="tickets__default_priority">{% for p in priorities %}<option value="{{ p.code }}" {{ values['tickets.default_priority'] == p.code ? 'selected' }}>{{ p.name }}</option>{% endfor %}</select></div>
         {{ s.row('tickets.auto_close_days', fields, values, 'Días tras «Resuelta» sin respuesta del cliente para pasar a «Cerrada». 0 = nunca.') }}
-        {{ s.row('tickets.ack_email', fields, values, 'Incluye el número de incidencia para que el cliente pueda responder sobre el mismo hilo.') }}
+        {{ s.row('tickets.ack_email', fields, values, 'Incluye el número de ticket para que el cliente pueda responder sobre el mismo hilo.') }}
         {{ s.row('notifications.email_enabled', fields, values, 'Cada empleado elige además qué avisos recibe en su perfil.') }}
         {{ s.row('workload.default_capacity', fields, values, null) }}
     </div></div>
@@ -44,6 +44,7 @@
     <div class="card mb-3"><div class="card-header">Seguridad</div><div class="card-body">
         {{ s.row('security.password_min_length', fields, values, 'Se exige en el siguiente cambio de contraseña de cada persona.') }}
         {{ s.row('security.session_idle_minutes', fields, values, null) }}
+        {{ s.row('security.remember_days', fields, values, 'Solo si la persona marca «Mantener la sesión iniciada» al entrar. Cerrar sesión, cambiar la contraseña o desactivar al usuario lo anula.') }}
         {{ s.row('security.login_max_attempts', fields, values, 'Por usuario; además hay un límite por dirección IP.') }}
         {{ s.row('security.reset_minutes', fields, values, null) }}
     </div></div>

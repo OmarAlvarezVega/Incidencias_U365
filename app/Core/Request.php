@@ -15,6 +15,7 @@ final class Request
      * @param array<string,mixed> $post
      * @param array<string,mixed> $files
      * @param array<string,mixed> $server
+     * @param array<string,mixed> $cookies
      */
     public function __construct(
         public readonly string $method,
@@ -24,6 +25,7 @@ final class Request
         public readonly array $files,
         public readonly array $server,
         private readonly ?string $rawBody = null,
+        public readonly array $cookies = [],
     ) {
     }
 
@@ -34,7 +36,7 @@ final class Request
         $path = is_string($path) ? rawurldecode($path) : '/';
         $path = '/' . trim($path, '/');
         $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-        return new self($method, $path, $_GET, $_POST, $_FILES, $_SERVER);
+        return new self($method, $path, $_GET, $_POST, $_FILES, $_SERVER, null, $_COOKIE);
     }
 
     public function rawBody(): string

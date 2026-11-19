@@ -154,7 +154,7 @@ final class EmailController extends Controller
         $to = trim($this->request->str('test_to'));
         if ($to !== '' && $results[1]['ok']) {
             try {
-                $this->app->make(Mailer::class)->send($acc, $to, 'Prueba de ' . $this->app->settings()->get('company.name', 'UNIVERS365 TECHNOLOGY'), "Correo de prueba enviado desde la plataforma de incidencias.\nNo es necesario responder.", null, [], [], true);
+                $this->app->make(Mailer::class)->send($acc, $to, 'Prueba de ' . $this->app->settings()->get('company.name', 'UNIVERS365 TECHNOLOGY'), "Correo de prueba enviado desde la plataforma de tickets.\nNo es necesario responder.", null, [], [], true);
                 $results[] = ['ok' => true, 'msg' => "Correo de prueba enviado a $to."];
             } catch (\Throwable $e) {
                 $results[] = ['ok' => false, 'msg' => 'Envío de prueba: ' . Logger::redact($e->getMessage())];

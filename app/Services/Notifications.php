@@ -16,15 +16,15 @@ final class Notifications
 {
     /** Eventos, descripción y si el correo está activado por defecto. */
     public const EVENTS = [
-        'ticket.assigned' => ['Se me asigna una incidencia', true],
+        'ticket.assigned' => ['Se me asigna un ticket', true],
         'ticket.collaborator' => ['Me añaden como colaborador', true],
-        'ticket.customer_reply' => ['El cliente responde en una incidencia mía', true],
-        'ticket.note' => ['Nota interna en una incidencia mía', false],
-        'ticket.status' => ['Cambia el estado de una incidencia mía', false],
-        'ticket.unassigned_new' => ['Entra una incidencia sin asignar (responsables)', false],
+        'ticket.customer_reply' => ['El cliente responde en un ticket mío', true],
+        'ticket.note' => ['Nota interna en un ticket mío', false],
+        'ticket.status' => ['Cambia el estado de un ticket mío', false],
+        'ticket.unassigned_new' => ['Entra un ticket sin asignar (responsables)', false],
         'ticket.review' => ['Mensaje pendiente de revisión (responsables)', false],
-        'sla.warning' => ['Una incidencia mía está cerca de incumplir el SLA', true],
-        'sla.breached' => ['Una incidencia mía ha incumplido el SLA', true],
+        'sla.warning' => ['Un ticket mío está cerca de incumplir el SLA', true],
+        'sla.breached' => ['Un ticket mío ha incumplido el SLA', true],
         'mail.error' => ['Errores de correo o WhatsApp (administración)', true],
     ];
 

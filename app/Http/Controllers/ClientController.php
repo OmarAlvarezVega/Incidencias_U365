@@ -152,13 +152,13 @@ final class ClientController extends Controller
         $c = $this->client();
         $open = (int)$this->db()->value("SELECT COUNT(*) FROM tickets t JOIN ticket_statuses s ON s.id = t.status_id WHERE t.client_id = ? AND s.phase IN ('new','open','pending') AND t.deleted_at IS NULL", [(int)$c['id']]);
         if ($open > 0) {
-            throw new ValidationException([], "El cliente tiene $open incidencias abiertas. Ciérralas o márcalo como inactivo.");
+            throw new ValidationException([], "El cliente tiene $open tickets abiertos. Ciérralos o márcalo como inactivo.");
         }
         $this->db()->run("UPDATE clients SET deleted_at = ?, status = 'inactive' WHERE id = ?", [Clock::nowDb(), (int)$c['id']]);
         // Sus dominios dejan de asociar correo entrante y quedan libres para otro cliente
         $this->db()->run('DELETE FROM client_email_domains WHERE client_id = ?', [(int)$c['id']]);
         $this->audit()->log('client.deleted', 'client', (int)$c['id'], ['nombre' => $c['legal_name']]);
-        return $this->redirect('/clientes', 'Cliente eliminado. Su historial de incidencias se conserva.');
+        return $this->redirect('/clientes', 'Cliente eliminado. Su historial de tickets se conserva.');
     }
 
     public function saveContact(): Response

@@ -18,18 +18,18 @@
     </div>
 </form>
 <div class="card"><div class="table-responsive">
-<table class="table table-hover align-middle mb-0">
-    <thead><tr><th>Empleado</th><th>Rol</th><th>Equipos</th><th class="text-end">Abiertas</th><th>Último acceso</th></tr></thead>
+<table class="table table-hover table-cards align-middle mb-0">
+    <thead><tr><th>Empleado</th><th>Rol</th><th>Equipos</th><th class="text-end">Abiertos</th><th>Último acceso</th></tr></thead>
     <tbody>
     {% for u in rows %}
         <tr>
-            <td><a class="row-link" href="/empleados/{{ u.id }}">{{ u.first_name }} {{ u.last_name }}</a>
+            <td class="td-title"><a class="row-link" href="/empleados/{{ u.id }}">{{ u.first_name }} {{ u.last_name }}</a>
                 {% if u.status == 'blocked' %}<span class="badge text-bg-warning">Bloqueado</span>{% elseif u.status == 'disabled' %}<span class="badge text-bg-secondary">Desactivado</span>{% endif %}
                 <div class="small text-muted">{{ u.email }}{% if u.corporate_phone %} · {{ u.corporate_phone }}{% endif %}</div></td>
-            <td class="small">{{ u.role }}</td>
-            <td class="small">{{ u.teams ?: '—' }}</td>
-            <td class="text-end">{{ u.open_tickets }}</td>
-            <td class="small text-muted text-nowrap">{{ u.last_login_at ? u.last_login_at|hace : 'Nunca' }}</td>
+            <td class="small" data-label="Rol">{{ u.role }}</td>
+            <td class="small" data-label="Equipos">{{ u.teams ?: '—' }}</td>
+            <td class="text-end" data-label="Abiertos">{{ u.open_tickets }}</td>
+            <td class="small text-muted text-nowrap" data-label="Último acceso">{{ u.last_login_at ? u.last_login_at|hace : 'Nunca' }}</td>
         </tr>
     {% else %}
         <tr><td colspan="5" class="empty-state"><i class="bi bi-people"></i>No hay empleados con estos filtros.</td></tr>

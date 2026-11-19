@@ -99,7 +99,7 @@ if (gs) {
     let timer = null; let seq = 0;
     const render = (data) => {
         const groups = [
-            ['tickets', 'Incidencias', r => `<span class="ticket-number">${escapeHtml(r.ticket_number)}</span> ${escapeHtml(r.subject)}`],
+            ['tickets', 'Tickets', r => `<span class="ticket-number">${escapeHtml(r.ticket_number)}</span> ${escapeHtml(r.subject)}`],
             ['clients', 'Clientes', r => escapeHtml(r.name)],
             ['contacts', 'Contactos', r => `${escapeHtml(r.name)} <span class="text-muted small">${escapeHtml(r.client ?? '')}</span>`],
             ['messages', 'Mensajes', r => `<span class="ticket-number">${escapeHtml(r.ticket_number)}</span> ${escapeHtml(r.snippet)}`],

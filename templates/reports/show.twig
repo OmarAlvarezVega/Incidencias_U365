@@ -27,7 +27,7 @@
             <select class="form-select form-select-sm" id="remp" name="empleado"><option value="">Todos</option>{% for s in staff %}<option value="{{ s.id }}" {{ f.empleado == s.id ? 'selected' }}>{{ s.name }}</option>{% endfor %}</select></div>
         <div class="col-6 col-md-1 d-grid"><button class="btn btn-sm btn-primary">Ver</button></div>
     </div>
-    <div class="small text-muted mt-1">Las fechas filtran por creación de la incidencia, salvo en tiempos (día de trabajo). Máximo dos años por consulta; en pantalla se muestran 500 filas, la exportación las incluye todas.</div>
+    <div class="small text-muted mt-1">Las fechas filtran por creación del ticket, salvo en tiempos (día de trabajo). Máximo dos años por consulta; en pantalla se muestran 500 filas, la exportación las incluye todas.</div>
 </form>
 <div class="card"><div class="table-responsive">
 <table class="table table-sm table-hover align-middle mb-0 small">

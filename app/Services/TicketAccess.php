@@ -68,7 +68,7 @@ final class TicketAccess
     {
         $t = $this->visible($user, $ticketId);
         if ($t === null) {
-            throw HttpException::notFound('La incidencia no existe o no tienes acceso a ella.');
+            throw HttpException::notFound('El ticket no existe o no tienes acceso a él.');
         }
         return $t;
     }
@@ -110,7 +110,7 @@ final class TicketAccess
     public function authorize(CurrentUser $user, array $ticket, string $permission): void
     {
         if (!$this->canModify($user, $ticket, $permission)) {
-            throw HttpException::forbidden('No tienes permiso para esta acción en esta incidencia.');
+            throw HttpException::forbidden('No tienes permiso para esta acción en este ticket.');
         }
     }
 }

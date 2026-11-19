@@ -1,7 +1,7 @@
 {% extends 'layouts/app.twig' %}
-{% block title %}Nueva incidencia{% endblock %}
+{% block title %}Nuevo ticket{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Nueva incidencia</h1><div class="subtitle">Alta manual (teléfono, visita, petición interna)</div></div></div>
+<div class="page-header"><div><h1>Nuevo ticket</h1><div class="subtitle">Alta manual (teléfono, visita, petición interna)</div></div></div>
 <form method="post" action="/incidencias" enctype="multipart/form-data">
 {{ csrf_field() }}
 <div class="row g-3">
@@ -60,7 +60,7 @@
         {% if can('tickets.assign') %}
         <div class="mb-2"><label class="form-label" for="collaborators">Colaboradores</label>
             <select class="form-select" id="collaborators" name="collaborators[]" multiple size="4">{% for u in catalog.staff %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select>
-            <div class="form-text">Ctrl/Cmd + clic para elegir varios. Con colaboradores la incidencia es compartida.</div></div>
+            <div class="form-text">En el ordenador, Ctrl/Cmd + clic para elegir varios; en el móvil, toca cada nombre. Con colaboradores el ticket es compartido.</div></div>
         {% endif %}
         <div class="mb-2"><label class="form-label" for="due_at">Fecha límite</label><input class="form-control" type="datetime-local" id="due_at" name="due_at" value="{{ old('due_at') }}"></div>
         {% if catalog.tags %}
@@ -70,6 +70,6 @@
     </div></div>
 </div>
 </div>
-<div class="mt-3 d-flex gap-2"><button class="btn btn-primary" type="submit">Crear incidencia</button><a class="btn btn-light" href="/incidencias">Cancelar</a></div>
+<div class="mt-3 d-flex gap-2"><button class="btn btn-primary" type="submit">Crear ticket</button><a class="btn btn-light" href="/incidencias">Cancelar</a></div>
 </form>
 {% endblock %}

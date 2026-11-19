@@ -9,7 +9,7 @@
 </div>
 {% set st = {pending: 'Pendiente', processed: 'Procesado', review: 'En revisión', ignored: 'Ignorado', failed: 'Error'} %}
 <div class="card mb-3"><div class="card-header">Últimos 30 mensajes</div><div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
-    <thead><tr><th></th><th>Fecha</th><th>De / para</th><th>Asunto</th><th>Estado</th><th>Incidencia</th></tr></thead>
+    <thead><tr><th></th><th>Fecha</th><th>De / para</th><th>Asunto</th><th>Estado</th><th>Ticket</th></tr></thead>
     <tbody>
     {% for msg in messages %}
     <tr>
@@ -29,7 +29,7 @@
     <tr class="{{ r.level == 'error' ? 'table-danger' : (r.level == 'warning' ? 'table-warning' : '') }}">
         <td class="text-nowrap">{{ r.created_at|fecha }}</td><td>{{ r.level == 'error' ? 'Error' : (r.level == 'warning' ? 'Aviso' : 'Info') }}</td>
         <td class="text-break">{{ r.message }}{% if r.subject %}<div class="text-muted">{{ r.from_address }} · {{ r.subject }}</div>{% endif %}</td>
-        <td>{% if r.ticket_id %}<a href="/incidencias/{{ r.ticket_id }}">Incidencia</a>{% endif %}</td>
+        <td>{% if r.ticket_id %}<a href="/incidencias/{{ r.ticket_id }}">Ticket</a>{% endif %}</td>
     </tr>
     {% else %}<tr><td class="text-muted p-3">Sin eventos todavía.</td></tr>{% endfor %}
     </tbody>

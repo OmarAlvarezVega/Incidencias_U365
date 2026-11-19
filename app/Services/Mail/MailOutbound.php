@@ -37,7 +37,7 @@ final class MailOutbound
         $to = $tickets->customerEmail($ticket);
         if ($to === null) {
             $db->run("UPDATE ticket_messages SET delivery_status = 'failed' WHERE id = ?", [$ticketMessageId]);
-            throw new PermanentJobFailure('La incidencia no tiene correo de cliente.');
+            throw new PermanentJobFailure('El ticket no tiene correo de cliente.');
         }
         $vars = $tickets->templateVars((int)$ticket['id']) + [
             'message' => (string)$m['body_text'],
@@ -57,7 +57,7 @@ final class MailOutbound
         $db = $this->app->db();
         $ticket = $db->one('SELECT * FROM tickets WHERE id = ?', [$ticketId]);
         if ($ticket === null) {
-            throw new PermanentJobFailure('La incidencia no existe.');
+            throw new PermanentJobFailure('El ticket no existe.');
         }
         $tickets = $this->app->make(TicketService::class);
         $to = $tickets->customerEmail($ticket);

@@ -150,3 +150,34 @@ a.kpi:hover { box-shadow: 0 4px 16px rgba(15,35,70,.08); }
 .text-pre { white-space: pre-wrap; }
 .min-w-0 { min-width: 0; }
 .kbd-hint { font-size: .7rem; color: var(--u-muted); border: 1px solid var(--u-border); border-radius: .25rem; padding: 0 .3rem; }
+.app-footer { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid var(--u-border); color: var(--u-muted); font-size: .75rem; text-align: right; }
+
+/* ---------- Móvil: formularios y listados ---------- */
+.form-select, .form-control { max-width: 100%; }
+@media (max-width: 575.98px) {
+    /* 16 px evita que iOS amplíe la página al tocar un campo */
+    .form-control, .form-select, .form-control-sm, .form-select-sm, .input-group-text { font-size: 16px; }
+    .form-select.w-auto, .form-control.w-auto { width: 100% !important; }
+    .btn { min-height: 40px; }
+    .btn-sm { min-height: 34px; }
+    .page-header > div:last-child:not(:first-child) { width: 100%; }
+    .form-actions, .card-footer { display: flex; flex-direction: column-reverse; gap: .5rem; }
+    .form-actions .btn, .card-footer .btn { width: 100%; }
+    .modal-dialog { margin: .5rem; }
+
+    /* Listados: cada fila es una tarjeta */
+    .table-responsive:has(> .table-cards) { overflow: visible; }
+    .table-cards thead { display: none; }
+    .table-cards, .table-cards tbody, .table-cards tr, .table-cards td { display: block; width: 100%; }
+    .table-cards tr { position: relative; background: #fff; border: 1px solid var(--u-border); border-radius: .6rem; margin: 0 0 .6rem; padding: .6rem .75rem; }
+    .table-cards td { border: 0 !important; padding: .1rem 0 !important; text-align: left !important; background: transparent !important; }
+    .table-cards td[data-label] { position: relative; padding-left: 7rem !important; overflow-wrap: anywhere; white-space: normal; }
+    .table-cards td[data-label]::before { content: attr(data-label); position: absolute; left: 0; top: .25rem; width: 6.5rem; color: var(--u-muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+    .table-cards td.td-check { position: absolute; top: .6rem; right: .75rem; width: auto; }
+    .table-cards td.td-head { font-size: .8rem; color: var(--u-muted); padding-right: 2rem !important; }
+    .table-cards td.td-title { font-weight: 600; margin-bottom: .25rem; }
+    .table-cards td.td-optional:empty, .table-cards td[data-label]:empty { display: none; }
+    .table-cards td.empty-state { display: block; }
+    .table-cards td.empty-state::before { content: none; }
+    .card > .table-responsive > .table-cards { padding: .5rem; }
+}

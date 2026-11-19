@@ -189,7 +189,7 @@ final class CatalogController extends Controller
         $db = $this->db();
         if ($id !== null && $this->request->bool('delete')) {
             $db->run('DELETE FROM ticket_tags WHERE id = ?', [$id]);
-            return 'Etiqueta eliminada de todas las incidencias.';
+            return 'Etiqueta eliminada de todos los tickets.';
         }
         $d = $this->validate(['name' => 'required|string|max:50', 'color' => 'color'], ['name' => 'El nombre', 'color' => 'El color']);
         if ($db->value('SELECT 1 FROM ticket_tags WHERE name = ? AND id <> ?', [$d['name'], $id ?? 0])) {

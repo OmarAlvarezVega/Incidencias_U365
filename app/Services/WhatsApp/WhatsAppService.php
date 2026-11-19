@@ -260,7 +260,7 @@ final class WhatsAppService
                     }
                     // Si no se ha podido preguntar, el mensaje no puede quedarse sin incidencia:
                     // va a la más reciente y el equipo lo verá
-                    $this->app->logger()->warning('No se pudo enviar la lista de incidencias por WhatsApp; el mensaje se añade a la más reciente.');
+                    $this->app->logger()->warning('No se pudo enviar la lista de tickets por WhatsApp; el mensaje se añade al más reciente.');
                 }
                 $targetId = (int)$open[0]['id'];
             }
@@ -419,7 +419,7 @@ final class WhatsAppService
         }
         $conv = $this->conversationFor($ticket);
         if ($conv === null) {
-            throw ValidationException::single('channel', 'El cliente no ha escrito nunca por WhatsApp desde un número asociado a esta incidencia.');
+            throw ValidationException::single('channel', 'El cliente no ha escrito nunca por WhatsApp desde un número asociado a este ticket.');
         }
         if (!self::windowOpen($conv) && $this->app->settings()->get('whatsapp.reopen_template') === null) {
             throw ValidationException::single('channel', 'Han pasado más de 24 h desde el último mensaje del cliente. WhatsApp solo permite escribirle con una plantilla aprobada por Meta (configúrala en Administración → WhatsApp) o responde por correo.');

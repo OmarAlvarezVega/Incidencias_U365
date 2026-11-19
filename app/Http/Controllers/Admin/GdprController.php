@@ -96,6 +96,6 @@ final class GdprController extends Controller
         $id = $this->request->paramInt('contact');
         $clientId = $this->db()->value('SELECT client_id FROM client_contacts WHERE id = ?', [$id]) ?? throw HttpException::notFound();
         $this->app->make(Gdpr::class)->anonymize($id, $this->user());
-        return $this->redirect('/clientes/' . $clientId . '#contactos', 'Contacto anonimizado. Las incidencias se conservan sin sus datos personales.');
+        return $this->redirect('/clientes/' . $clientId . '#contactos', 'Contacto anonimizado. Los tickets se conservan sin sus datos personales.');
     }
 }
